@@ -9,16 +9,16 @@ files=$(git diff --cached --name-only)
 api_modified=false
 web_modified=false
 
-for file in $files
-do
-    if [[ $file == "api/"* && $file == *.py ]]; then
-        # set api_modified flag to true
-        api_modified=true
-    elif [[ $file == "web/"* ]]; then
-        # set web_modified flag to true
-        web_modified=true
-    fi
-done
+# for file in $files
+# do
+#     if [[ $file == "api/"* && $file == *.py ]]; then
+#         # set api_modified flag to true
+#         api_modified=true
+#     elif [[ $file == "web/"* ]]; then
+#         # set web_modified flag to true
+#         web_modified=true
+#     fi
+# done
 
 # run linters based on the modified modules
 
