@@ -10,9 +10,10 @@ type ISecretKeyButtonProps = {
   appId?: string
   iconCls?: string
   textCls?: string
+  type?: string
 }
 
-const SecretKeyButton = ({ className, appId, iconCls, textCls }: ISecretKeyButtonProps) => {
+const SecretKeyButton = ({ className, appId, iconCls, textCls, type }: ISecretKeyButtonProps) => {
   const [isVisible, setVisible] = useState(false)
   const { t } = useTranslation()
   return (
@@ -25,7 +26,7 @@ const SecretKeyButton = ({ className, appId, iconCls, textCls }: ISecretKeyButto
         </div>
         <div className={`text-[13px] text-gray-800 ${textCls}`}>{t('appApi.apiKey')}</div>
       </Button>
-      <SecretKeyModal isShow={isVisible} onClose={() => setVisible(false)} appId={appId} />
+      <SecretKeyModal isShow={isVisible} onClose={() => setVisible(false)} appId={appId} type={type} />
     </>
   )
 }

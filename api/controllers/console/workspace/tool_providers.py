@@ -1,11 +1,12 @@
 import io
 
-from flask import send_file
+import flask_restful
+from flask import send_file, request
 from flask_login import current_user  # type: ignore
-from flask_restful import Resource, reqparse  # type: ignore
+from flask_restful import Resource, marshal, marshal_with, reqparse  # type: ignore
 from sqlalchemy.orm import Session
 from werkzeug.exceptions import Forbidden
-
+from controllers.console.apikey import api_key_fields, api_key_list
 from configs import dify_config
 from controllers.console import api
 from controllers.console.wraps import account_initialization_required, enterprise_license_required, setup_required
@@ -18,6 +19,7 @@ from services.tools.builtin_tools_manage_service import BuiltinToolManageService
 from services.tools.tool_labels_service import ToolLabelsService
 from services.tools.tools_manage_service import ToolCommonService
 from services.tools.workflow_tools_manage_service import WorkflowToolManageService
+from models import ApiToken
 
 
 class ToolProviderListApi(Resource):
@@ -559,6 +561,93 @@ class ToolLabelsApi(Resource):
         return jsonable_encoder(ToolLabelsService.list_tool_labels())
 
 
+class ToolApiKeyApi(Resource):
+    max_keys = 10
+    token_prefix = "tool-"
+    resource_type = "tool"
+
+    @setup_required
+    @login_required
+    @account_initialization_required
+    @marshal_with(api_key_list)
+    def get(self):
+        keys = (
+            db.session.query(ApiToken)
+            .filter(ApiToken.type == self.resource_type, ApiToken.tenant_id == current_user.current_tenant_id)
+            .all()
+        )
+        return {"items": keys}
+
+    @setup_required
+    @login_required
+    @account_initialization_required
+    @marshal_with(api_key_fields)
+    def post(self):
+        # The role of the current user in the ta table must be admin or owner
+        if not current_user.is_admin_or_owner:
+            raise Forbidden()
+
+        current_key_count = (
+            db.session.query(ApiToken)
+            .filter(ApiToken.type == self.resource_type, ApiToken.tenant_id == current_user.current_tenant_id)
+            .count()
+        )
+
+        if current_key_count >= self.max_keys:
+            flask_restful.abort(
+                400,
+                message=f"Cannot create more than {self.max_keys} API keys for this resource type.",
+                code="max_keys_exceeded",
+            )
+
+        key = ApiToken.generate_api_key(self.token_prefix, 24)
+        api_token = ApiToken()
+        api_token.tenant_id = current_user.current_tenant_id
+        api_token.token = key
+        api_token.type = self.resource_type
+        db.session.add(api_token)
+        db.session.commit()
+        return api_token, 200
+    
+class ToolApiDeleteApi(Resource):
+    resource_type = "tool"
+
+    @setup_required
+    @login_required
+    @account_initialization_required
+    def delete(self, api_key_id):
+        api_key_id = str(api_key_id)
+
+        # The role of the current user in the ta table must be admin or owner
+        if not current_user.is_admin_or_owner:
+            raise Forbidden()
+
+        key = (
+            db.session.query(ApiToken)
+            .filter(
+                ApiToken.tenant_id == current_user.current_tenant_id,
+                ApiToken.type == self.resource_type,
+                ApiToken.id == api_key_id,
+            )
+            .first()
+        )
+
+        if key is None:
+            flask_restful.abort(404, message="API key not found")
+
+        db.session.query(ApiToken).filter(ApiToken.id == api_key_id).delete()
+        db.session.commit()
+
+        return {"result": "success"}, 204
+
+
+class ToolApiBaseUrlApi(Resource):
+    @setup_required
+    @login_required
+    @account_initialization_required
+    def get(self):
+        return {"api_base_url": (dify_config.SERVICE_API_URL or request.host_url.rstrip("/")) + "/v1"}
+
 # tool provider
 api.add_resource(ToolProviderListApi, "/workspaces/current/tool-providers")
 
@@ -596,3 +685,8 @@ api.add_resource(ToolApiListApi, "/workspaces/current/tools/api")
 api.add_resource(ToolWorkflowListApi, "/workspaces/current/tools/workflow")
 
 api.add_resource(ToolLabelsApi, "/workspaces/current/tool-labels")
+
+# provide tool Api Key
+api.add_resource(ToolApiKeyApi, "/workspaces/api-keys")
+api.add_resource(ToolApiDeleteApi, "/workspaces/api-keys/<uuid:api_key_id>")
+api.add_resource(ToolApiBaseUrlApi, "/workspaces/api-base-info")

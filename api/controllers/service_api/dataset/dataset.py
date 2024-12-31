@@ -158,6 +158,5 @@ class DatasetApi(DatasetApiResource):
         except services.errors.dataset.DatasetInUseError:
             raise DatasetInUseError()
 
-
 api.add_resource(DatasetListApi, "/datasets")
 api.add_resource(DatasetApi, "/datasets/<uuid:dataset_id>")

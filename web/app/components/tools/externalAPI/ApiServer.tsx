@@ -22,7 +22,6 @@ const ApiServer: FC<ApiServerProps> = ({
         <div className='mx-1 w-[1px] h-[14px] bg-gray-200'></div>
         <CopyFeedback
           content={apiBaseUrl}
-          selectorId={randomString(8)}
           className={'!w-6 !h-6 hover:bg-gray-200'}
         />
       </div>
@@ -33,7 +32,7 @@ const ApiServer: FC<ApiServerProps> = ({
         className='flex-shrink-0 !h-8 bg-white'
         textCls='!text-gray-700 font-medium'
         iconCls='stroke-[1.2px]'
-        type='datasets'
+        type='workspaces'
       />
     </div>
   )

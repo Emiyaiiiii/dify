@@ -1,4 +1,5 @@
-import { get, post } from './base'
+import { get, post, del } from './base'
+import type { Fetcher } from 'swr'
 import type {
   Collection,
   CustomCollectionBackend,
@@ -10,6 +11,11 @@ import type {
 } from '@/app/components/tools/types'
 import type { ToolWithProvider } from '@/app/components/workflow/types'
 import type { Label } from '@/app/components/tools/labels/constant'
+import type {
+  ApiKeysListResponse,
+  CreateApiKeyResponse,
+} from '@/models/app'
+import type { CommonResponse } from '@/models/common'
 
 export const fetchCollectionList = () => {
   return get<Collection[]>('/workspaces/current/tool-providers')
@@ -149,4 +155,20 @@ export const deleteWorkflowTool = (toolID: string) => {
       workflow_tool_id: toolID,
     },
   })
+}
+
+export const createApikey: Fetcher<CreateApiKeyResponse, { url: string; body: Record<string, any> }> = ({ url, body }) => {
+  return post<CreateApiKeyResponse>(url, body)
+}
+
+export const delApikey: Fetcher<CommonResponse, { url: string; params: Record<string, any> }> = ({ url, params }) => {
+  return del<CommonResponse>(url, params)
+}
+
+export const fetchApiKeysList: Fetcher<ApiKeysListResponse, { url: string; params: Record<string, any> }> = ({ url, params }) => {
+  return get<ApiKeysListResponse>(url, params)
+}
+
+export const fetchApiBaseUrl: Fetcher<{ api_base_url: string }, string> = (url) => {
+  return get<{ api_base_url: string }>(url)
 }

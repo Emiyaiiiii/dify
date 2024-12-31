@@ -21,6 +21,11 @@ import {
   delApikey as delDatasetApikey,
   fetchApiKeysList as fetchDatasetApiKeysList,
 } from '@/service/datasets'
+import {
+  createApikey as createToolApikey,
+  delApikey as delToolApikey,
+  fetchApiKeysList as fetchToolApiKeysList,
+} from '@/service/tools'
 import type { CreateApiKeyResponse } from '@/models/app'
 import Tooltip from '@/app/components/base/tooltip'
 import Loading from '@/app/components/base/loading'
@@ -31,12 +36,14 @@ import { useAppContext } from '@/context/app-context'
 type ISecretKeyModalProps = {
   isShow: boolean
   appId?: string
+  type?: string
   onClose: () => void
 }
 
 const SecretKeyModal = ({
   isShow = false,
   appId,
+  type,
   onClose,
 }: ISecretKeyModalProps) => {
   const { t } = useTranslation()
@@ -48,7 +55,7 @@ const SecretKeyModal = ({
   const { mutate } = useSWRConfig()
   const commonParams = appId
     ? { url: `/apps/${appId}/api-keys`, params: {} }
-    : { url: '/datasets/api-keys', params: {} }
+    : { url: `/${type}/api-keys`, params: {} }
   const fetchApiKeysList = appId ? fetchAppApiKeysList : fetchDatasetApiKeysList
   const { data: apiKeysList } = useSWR(commonParams, fetchApiKeysList)
 
@@ -76,7 +83,7 @@ const SecretKeyModal = ({
     const delApikey = appId ? delAppApikey : delDatasetApikey
     const params = appId
       ? { url: `/apps/${appId}/api-keys/${delKeyID}`, params: {} }
-      : { url: `/datasets/api-keys/${delKeyID}`, params: {} }
+      : { url: `/${type}/api-keys/${delKeyID}`, params: {} }
     await delApikey(params)
     mutate(commonParams)
   }
@@ -84,7 +91,7 @@ const SecretKeyModal = ({
   const onCreate = async () => {
     const params = appId
       ? { url: `/apps/${appId}/api-keys`, body: {} }
-      : { url: '/datasets/api-keys', body: {} }
+      : { url: `/${type}/api-keys`, body: {} }
     const createApikey = appId ? createAppApikey : createDatasetApikey
     const res = await createApikey(params)
     setVisible(true)

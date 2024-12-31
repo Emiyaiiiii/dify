@@ -7,6 +7,7 @@ const translation = {
     builtIn: '内置',
     custom: '自定义',
     workflow: '工作流',
+    doc: "API"
   },
   contribute: {
     line1: '我有兴趣为 ',

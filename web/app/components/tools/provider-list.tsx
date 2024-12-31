@@ -14,21 +14,33 @@ import { Route } from '@/app/components/base/icons/src/vender/line/mapsAndTravel
 import CustomCreateCard from '@/app/components/tools/provider/custom-create-card'
 import ContributeCard from '@/app/components/tools/provider/contribute'
 import ProviderCard from '@/app/components/tools/provider/card'
+import Doc from '@/app/components/tools/externalAPI/doc'
 import ProviderDetail from '@/app/components/tools/provider/detail'
 import Empty from '@/app/components/tools/add-tool-modal/empty'
 import { fetchCollectionList } from '@/service/tools'
+import { useQuery } from '@tanstack/react-query'
+import { fetchApiBaseUrl } from '@/service/tools'
+import ApiServer from './externalAPI/ApiServer'
 
 const ProviderList = () => {
   const { t } = useTranslation()
 
   const [activeTab, setActiveTab] = useTabSearchParams({
-    defaultTab: 'builtin',
+    defaultTab: 'api',
   })
   const options = [
     { value: 'builtin', text: t('tools.type.builtIn'), icon: <DotsGrid className='w-[14px] h-[14px] mr-1' /> },
     { value: 'api', text: t('tools.type.custom'), icon: <Colors className='w-[14px] h-[14px] mr-1' /> },
     { value: 'workflow', text: t('tools.type.workflow'), icon: <Route className='w-[14px] h-[14px] mr-1' /> },
+    { value: 'doc', text: t('tools.type.doc')},
   ]
+  const { data } = useQuery(
+    {
+      queryKey: ['toolApiBaseInfo'],
+      queryFn: () => fetchApiBaseUrl('/workspaces/api-base-info'),
+      enabled: activeTab !== 'doc',
+    },
+  )
   const [tagFilterValue, setTagFilterValue] = useState<string[]>([])
   const handleTagsChange = (value: string[]) => {
     setTagFilterValue(value)
@@ -82,7 +94,9 @@ const ProviderList = () => {
             }}
             options={options}
           />
-          <div className='flex items-center gap-2'>
+          
+          {activeTab !== 'doc' && (
+            <div className='flex items-center gap-2'>
             <LabelFilter value={tagFilterValue} onChange={handleTagsChange} />
             <Input
               showLeftIcon
@@ -92,8 +106,12 @@ const ProviderList = () => {
               onChange={e => handleKeywordsChange(e.target.value)}
               onClear={() => handleKeywordsChange('')}
             />
-          </div>
+            </div>
+          )}
+          {activeTab === 'doc' && data && <ApiServer apiBaseUrl={data.api_base_url || ''} />}
         </div>
+
+        {activeTab === 'doc' && data && <Doc apiBaseUrl={data.api_base_url || ''} />}
         <div className={cn(
           'relative grid content-start grid-cols-1 gap-4 px-12 pt-2 pb-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 grow shrink-0',
           currentProvider && 'pr-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
@@ -108,8 +126,9 @@ const ProviderList = () => {
               collection={collection}
             />
           ))}
-          {!filteredCollectionList.length && <div className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'><Empty /></div>}
+          {!filteredCollectionList.length && activeTab !== 'doc' && <div className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'><Empty /></div>}
         </div>
+
       </div>
       <div className={cn(
         'shrink-0 w-0 border-l-[0.5px] border-black/8 overflow-y-auto transition-all duration-200 ease-in-out',
