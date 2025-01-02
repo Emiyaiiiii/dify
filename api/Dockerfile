@@ -27,7 +27,9 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends gcc g++ libc-dev libffi-dev libgmp-dev libmpfr-dev libmpc-dev
 
 # Install Python dependencies
+RUN poetry source add --priority=default mirrors https://pypi.tuna.tsinghua.edu.cn/simple/
 COPY pyproject.toml poetry.lock ./
+RUN poetry lock
 RUN poetry install --sync --no-cache --no-root
 
 # production stage
