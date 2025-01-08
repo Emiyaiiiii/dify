@@ -8,7 +8,7 @@ const translation = {
     completion: '文本生成',
     advanced: 'Chatflow',
     basic: '基础编排',
-    doc: 'api',
+    doc: 'API',
   },
   duplicate: '复制',
   mermaid: {
