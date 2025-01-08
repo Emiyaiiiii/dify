@@ -177,3 +177,7 @@ export const updateTracingConfig: Fetcher<CommonResponse, { appId: string; body:
 export const removeTracingConfig: Fetcher<CommonResponse, { appId: string; provider: TracingProvider }> = ({ appId, provider }) => {
   return del(`/apps/${appId}/trace-config?tracing_provider=${provider}`)
 }
+
+export const fetchApiBaseUrl: Fetcher<{ api_base_url: string }, string> = (url) => {
+  return get<{ api_base_url: string }>(url)
+}

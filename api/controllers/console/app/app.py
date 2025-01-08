@@ -1,12 +1,14 @@
 import uuid
 from typing import cast
-
+import flask_restful
+from flask import request
 from flask_login import current_user  # type: ignore
 from flask_restful import Resource, inputs, marshal, marshal_with, reqparse  # type: ignore
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from werkzeug.exceptions import BadRequest, Forbidden, abort
-
+from configs import dify_config
+from controllers.console.apikey import api_key_fields, api_key_list
 from controllers.console import api
 from controllers.console.app.wraps import get_app_model
 from controllers.console.wraps import (
@@ -26,6 +28,8 @@ from libs.login import login_required
 from models import Account, App
 from services.app_dsl_service import AppDslService, ImportMode
 from services.app_service import AppService
+from models import ApiToken
+
 
 ALLOW_CREATE_APP_MODES = ["chat", "agent-chat", "advanced-chat", "workflow", "completion"]
 
@@ -332,6 +336,94 @@ class AppTraceApi(Resource):
         return {"result": "success"}
 
 
+class AppApiKeyApi(Resource):
+    max_keys = 10
+    token_prefix = "app-"
+    resource_type = "app"
+
+    @setup_required
+    @login_required
+    @account_initialization_required
+    @marshal_with(api_key_list)
+    def get(self):
+        keys = (
+            db.session.query(ApiToken)
+            .filter(ApiToken.type == self.resource_type, ApiToken.tenant_id == current_user.current_tenant_id)
+            .all()
+        )
+        return {"items": keys}
+
+    @setup_required
+    @login_required
+    @account_initialization_required
+    @marshal_with(api_key_fields)
+    def post(self):
+        # The role of the current user in the ta table must be admin or owner
+        if not current_user.is_admin_or_owner:
+            raise Forbidden()
+
+        current_key_count = (
+            db.session.query(ApiToken)
+            .filter(ApiToken.type == self.resource_type, ApiToken.tenant_id == current_user.current_tenant_id)
+            .count()
+        )
+
+        if current_key_count >= self.max_keys:
+            flask_restful.abort(
+                400,
+                message=f"Cannot create more than {self.max_keys} API keys for this resource type.",
+                code="max_keys_exceeded",
+            )
+
+        key = ApiToken.generate_api_key(self.token_prefix, 24)
+        api_token = ApiToken()
+        api_token.tenant_id = current_user.current_tenant_id
+        api_token.token = key
+        api_token.type = self.resource_type
+        db.session.add(api_token)
+        db.session.commit()
+        return api_token, 200
+    
+class AppApiDeleteApi(Resource):
+    resource_type = "app"
+
+    @setup_required
+    @login_required
+    @account_initialization_required
+    def delete(self, api_key_id):
+        api_key_id = str(api_key_id)
+
+        # The role of the current user in the ta table must be admin or owner
+        if not current_user.is_admin_or_owner:
+            raise Forbidden()
+
+        key = (
+            db.session.query(ApiToken)
+            .filter(
+                ApiToken.tenant_id == current_user.current_tenant_id,
+                ApiToken.type == self.resource_type,
+                ApiToken.id == api_key_id,
+            )
+            .first()
+        )
+
+        if key is None:
+            flask_restful.abort(404, message="API key not found")
+
+        db.session.query(ApiToken).filter(ApiToken.id == api_key_id).delete()
+        db.session.commit()
+
+        return {"result": "success"}, 204
+
+
+class AppApiBaseUrlApi(Resource):
+    @setup_required
+    @login_required
+    @account_initialization_required
+    def get(self):
+        return {"api_base_url": (dify_config.SERVICE_API_URL or request.host_url.rstrip("/")) + "/v1"}
+
+
 api.add_resource(AppListApi, "/apps")
 api.add_resource(AppApi, "/apps/<uuid:app_id>")
 api.add_resource(AppCopyApi, "/apps/<uuid:app_id>/copy")
@@ -341,3 +433,8 @@ api.add_resource(AppIconApi, "/apps/<uuid:app_id>/icon")
 api.add_resource(AppSiteStatus, "/apps/<uuid:app_id>/site-enable")
 api.add_resource(AppApiStatus, "/apps/<uuid:app_id>/api-enable")
 api.add_resource(AppTraceApi, "/apps/<uuid:app_id>/trace")
+
+# provide tool Api Key
+api.add_resource(AppApiKeyApi, "/apps/api-keys")
+api.add_resource(AppApiDeleteApi, "/apps/api-keys/<uuid:api_key_id>")
+api.add_resource(AppApiBaseUrlApi, "/apps/api-base-info")

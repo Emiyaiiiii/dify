@@ -1,0 +1,25 @@
+import { CodeGroup } from '@/app/components/develop/code.tsx'
+import { Row, Col, Properties, Property, Heading, SubProperty, Paragraph } from '@/app/components/develop/md.tsx'
+
+# 工具 API
+
+<div>
+  ### 鉴权
+
+  Dify Service API 使用 `API-Key` 进行鉴权。
+
+  建议开发者把 `API-Key` 放在后端存储，而非分享或者放在客户端存储，以免 `API-Key` 泄露，导致财产损失。
+
+  所有 API 请求都应在 **`Authorization`** HTTP Header 中包含您的 `API-Key`，如下所示：
+
+  <CodeGroup title="Code">
+    ```javascript
+      Authorization: Bearer {API_KEY}
+
+    ```
+  </CodeGroup>
+</div>
+
+<hr className='ml-0 mr-0' />
+
+<div className="pb-4" />

@@ -3,14 +3,14 @@ from flask_restful import reqparse  # type: ignore
 from werkzeug.exceptions import Forbidden
 
 from controllers.service_api import api
-from controllers.service_api.wraps import DatasetToolResource
+from controllers.service_api.wraps import ToolApiResource
 from core.model_runtime.utils.encoders import jsonable_encoder
 from services.tools.api_tools_manage_service import ApiToolManageService
 from services.tools.tool_labels_service import ToolLabelsService
 from services.tools.tools_manage_service import ToolCommonService
 
 
-class ToolProviderListApi(DatasetToolResource):
+class ToolProviderListApi(ToolApiResource):
     def get(self):
         user_id = current_user.id
         tenant_id = current_user.current_tenant_id
@@ -29,7 +29,7 @@ class ToolProviderListApi(DatasetToolResource):
         return ToolCommonService.list_tool_providers(user_id, tenant_id, args.get("type", None))
 
 
-class ToolApiProviderAddApi(DatasetToolResource):
+class ToolApiProviderAddApi(ToolApiResource):
     def post(self):
         if not current_user.is_admin_or_owner:
             raise Forbidden()
@@ -63,7 +63,7 @@ class ToolApiProviderAddApi(DatasetToolResource):
         )
 
 
-class ToolApiProviderGetRemoteSchemaApi(DatasetToolResource):
+class ToolApiProviderGetRemoteSchemaApi(ToolApiResource):
     def get(self):
         parser = reqparse.RequestParser()
 
@@ -78,7 +78,7 @@ class ToolApiProviderGetRemoteSchemaApi(DatasetToolResource):
         )
 
 
-class ToolApiProviderListToolsApi(DatasetToolResource):
+class ToolApiProviderListToolsApi(ToolApiResource):
     def get(self):
         user_id = current_user.id
         tenant_id = current_user.current_tenant_id
@@ -98,7 +98,7 @@ class ToolApiProviderListToolsApi(DatasetToolResource):
         )
 
 
-class ToolApiProviderUpdateApi(DatasetToolResource):
+class ToolApiProviderUpdateApi(ToolApiResource):
     def post(self):
         if not current_user.is_admin_or_owner:
             raise Forbidden()
@@ -134,7 +134,7 @@ class ToolApiProviderUpdateApi(DatasetToolResource):
         )
 
 
-class ToolApiProviderDeleteApi(DatasetToolResource):
+class ToolApiProviderDeleteApi(ToolApiResource):
     def post(self):
         if not current_user.is_admin_or_owner:
             raise Forbidden()
@@ -155,7 +155,7 @@ class ToolApiProviderDeleteApi(DatasetToolResource):
         )
 
 
-class ToolApiProviderGetApi(DatasetToolResource):
+class ToolApiProviderGetApi(ToolApiResource):
     def get(self):
         user_id = current_user.id
         tenant_id = current_user.current_tenant_id
@@ -173,7 +173,7 @@ class ToolApiProviderGetApi(DatasetToolResource):
         )
 
 
-class ToolApiProviderSchemaApi(DatasetToolResource):
+class ToolApiProviderSchemaApi(ToolApiResource):
     def post(self):
         parser = reqparse.RequestParser()
 
@@ -186,7 +186,7 @@ class ToolApiProviderSchemaApi(DatasetToolResource):
         )
 
 
-class ToolApiProviderPreviousTestApi(DatasetToolResource):
+class ToolApiProviderPreviousTestApi(ToolApiResource):
     def post(self):
         parser = reqparse.RequestParser()
 
@@ -210,7 +210,7 @@ class ToolApiProviderPreviousTestApi(DatasetToolResource):
         )
 
 
-class ToolApiListApi(DatasetToolResource):
+class ToolApiListApi(ToolApiResource):
     def get(self):
         user_id = current_user.id
         tenant_id = current_user.current_tenant_id
@@ -226,7 +226,7 @@ class ToolApiListApi(DatasetToolResource):
         )
 
 
-class ToolLabelsApi(DatasetToolResource):
+class ToolLabelsApi(ToolApiResource):
     def get(self):
         return jsonable_encoder(ToolLabelsService.list_tool_labels())
 

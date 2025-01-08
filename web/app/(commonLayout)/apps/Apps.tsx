@@ -26,6 +26,11 @@ import { useStore as useTagStore } from '@/app/components/base/tag-management/st
 import TagManagementModal from '@/app/components/base/tag-management'
 import TagFilter from '@/app/components/base/tag-management/filter'
 import CheckboxWithLabel from '@/app/components/datasets/create/website/base/checkbox-with-label'
+import ApiServer from '@/app/components/app/externalAPI/ApiServer'
+import { useQuery } from '@tanstack/react-query'
+import { fetchApiBaseUrl } from '@/service/apps'
+import Doc from '@/app/components/app/externalAPI/doc'
+
 
 const getKey = (
   pageIndex: number,
@@ -35,7 +40,7 @@ const getKey = (
   tags: string[],
   keywords: string,
 ) => {
-  if (!pageIndex || previousPageData.has_more) {
+  if ((!pageIndex || previousPageData.has_more) && activeTab!== 'doc') {
     const params: any = { url: 'apps', params: { page: pageIndex + 1, limit: 30, name: keywords, is_created_by_me: isCreatedByMe } }
 
     if (activeTab !== 'all')
@@ -69,6 +74,13 @@ const Apps = () => {
   const setTagIDs = useCallback((tagIDs: string[]) => {
     setQuery(prev => ({ ...prev, tagIDs }))
   }, [setQuery])
+  const { data: apiServerData } = useQuery(
+    {
+      queryKey: ['AppApiBaseInfo'],
+      queryFn: () => fetchApiBaseUrl('/apps/api-base-info'),
+      enabled: activeTab === 'doc',
+    },
+  )
 
   const { data, isLoading, setSize, mutate } = useSWRInfinite(
     (pageIndex: number, previousPageData: AppListResponse) => getKey(pageIndex, previousPageData, activeTab, isCreatedByMe, tagIDs, searchKeywords),
@@ -82,6 +94,7 @@ const Apps = () => {
     { value: 'chat', text: t('app.types.chatbot'), icon: <RiMessage3Line className='w-[14px] h-[14px] mr-1' /> },
     { value: 'agent-chat', text: t('app.types.agent'), icon: <RiRobot3Line className='w-[14px] h-[14px] mr-1' /> },
     { value: 'workflow', text: t('app.types.workflow'), icon: <RiExchange2Line className='w-[14px] h-[14px] mr-1' /> },
+    { value: 'doc', text: t('app.types.doc') },
   ]
 
   useEffect(() => {
@@ -134,42 +147,50 @@ const Apps = () => {
           onChange={setActiveTab}
           options={options}
         />
-        <div className='flex items-center gap-2'>
-          <CheckboxWithLabel
-            className='mr-2'
-            label={t('app.showMyCreatedAppsOnly')}
-            isChecked={isCreatedByMe}
-            onChange={() => setIsCreatedByMe(!isCreatedByMe)}
-          />
-          <TagFilter type='app' value={tagFilterValue} onChange={handleTagsChange} />
-          <Input
-            showLeftIcon
-            showClearIcon
-            wrapperClassName='w-[200px]'
-            value={keywords}
-            onChange={e => handleKeywordsChange(e.target.value)}
-            onClear={() => handleKeywordsChange('')}
-          />
-        </div>
+        {activeTab !== 'doc' && (
+          <div className='flex items-center gap-2'>
+            <CheckboxWithLabel
+              className='mr-2'
+              label={t('app.showMyCreatedAppsOnly')}
+              isChecked={isCreatedByMe}
+              onChange={() => setIsCreatedByMe(!isCreatedByMe)}
+            />
+            <TagFilter type='app' value={tagFilterValue} onChange={handleTagsChange} />
+            <Input
+              showLeftIcon
+              showClearIcon
+              wrapperClassName='w-[200px]'
+              value={keywords}
+              onChange={e => handleKeywordsChange(e.target.value)}
+              onClear={() => handleKeywordsChange('')}
+            />
+          </div>
+        )}
+        {activeTab === 'doc' && apiServerData && <ApiServer apiBaseUrl={apiServerData.api_base_url || ''} />}
       </div>
-      {(data && data[0].total > 0)
-        ? <div className='grid content-start grid-cols-1 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5 2k:grid-cols-6 gap-4 px-12 pt-2 grow relative'>
-          {isCurrentWorkspaceEditor
-            && <NewAppCard onSuccess={mutate} />}
-          {data.map(({ data: apps }) => apps.map(app => (
-            <AppCard key={app.id} app={app} onRefresh={mutate} />
-          )))}
+      {activeTab !== 'doc' && (
+        <div>
+          {(data && data[0].total > 0)
+            ? <div className='grid content-start grid-cols-1 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5 2k:grid-cols-6 gap-4 px-12 pt-2 grow relative'>
+              {isCurrentWorkspaceEditor
+                && <NewAppCard onSuccess={mutate} />}
+              {data.map(({ data: apps }) => apps.map(app => (
+                <AppCard key={app.id} app={app} onRefresh={mutate} />
+              )))}
+            </div>
+            : <div className='grid content-start grid-cols-1 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5 2k:grid-cols-6 gap-4 px-12 pt-2 grow relative overflow-hidden'>
+              {isCurrentWorkspaceEditor
+                && <NewAppCard className='z-10' onSuccess={mutate} />}
+              <NoAppsFound />
+          </div>}
+          <CheckModal />
+          <div ref={anchorRef} className='h-0'> </div>
+          {showTagManagementModal && (
+            <TagManagementModal type='app' show={showTagManagementModal} />
+          )}
         </div>
-        : <div className='grid content-start grid-cols-1 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5 2k:grid-cols-6 gap-4 px-12 pt-2 grow relative overflow-hidden'>
-          {isCurrentWorkspaceEditor
-            && <NewAppCard className='z-10' onSuccess={mutate} />}
-          <NoAppsFound />
-        </div>}
-      <CheckModal />
-      <div ref={anchorRef} className='h-0'> </div>
-      {showTagManagementModal && (
-        <TagManagementModal type='app' show={showTagManagementModal} />
       )}
+      {activeTab === 'doc' && apiServerData && <Doc apiBaseUrl={apiServerData.api_base_url || ''} />}
     </>
   )
 }

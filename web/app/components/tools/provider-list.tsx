@@ -38,7 +38,7 @@ const ProviderList = () => {
     {
       queryKey: ['toolApiBaseInfo'],
       queryFn: () => fetchApiBaseUrl('/workspaces/api-base-info'),
-      enabled: activeTab !== 'doc',
+      enabled: activeTab === 'doc',
     },
   )
   const [tagFilterValue, setTagFilterValue] = useState<string[]>([])

@@ -211,6 +211,43 @@ def validate_tool_token(view=None):
     return decorator
 
 
+def validate_app_api_token(view=None):
+    def decorator(view):
+        @wraps(view)
+        def decorated(*args, **kwargs):
+            api_token = validate_and_get_api_token("app")
+            tenant_account_join = (
+                db.session.query(Tenant, TenantAccountJoin)
+                .filter(Tenant.id == api_token.tenant_id)
+                .filter(TenantAccountJoin.tenant_id == Tenant.id)
+                .filter(TenantAccountJoin.role.in_(["owner"]))
+                .filter(Tenant.status == TenantStatus.NORMAL)
+                .one_or_none()
+            )  # TODO: only owner information is required, so only one is returned.
+            if tenant_account_join:
+                tenant, ta = tenant_account_join
+                account = Account.query.filter_by(id=ta.account_id).first()
+                # Login admin
+                if account:
+                    account.current_tenant = tenant
+                    current_app.login_manager._update_request_context_with_user(account)  # type: ignore
+                    user_logged_in.send(current_app._get_current_object(), user=_get_user())  # type: ignore
+                else:
+                    raise Unauthorized("Tenant owner account does not exist.")
+            else:
+                raise Unauthorized("Tenant does not exist.")
+            return view(*args, **kwargs)
+
+        return decorated
+
+    if view:
+        return decorator(view)
+
+    # if view is None, it means that the decorator is used without parentheses
+    # use the decorator as a function for method_decorators
+    return decorator
+
+
 def validate_and_get_api_token(scope=None):
     """
     Validate and get API token.
@@ -279,5 +316,10 @@ class DatasetApiResource(Resource):
     method_decorators = [validate_dataset_token]
 
 
-class DatasetToolResource(Resource):
+class ToolApiResource(Resource):
     method_decorators = [validate_tool_token]
+
+
+class AppApiResource(Resource):
+    method_decorators = [validate_app_api_token]
+
