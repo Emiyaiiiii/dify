@@ -1,5 +1,5 @@
 import uuid
-from flask_restful import Resource, inputs, marshal, marshal_with, reqparse  # type: ignore
+from flask_restful import Resource, inputs, marshal, marshal_with, reqparse # type: ignore
 from controllers.common import fields
 from controllers.common import helpers as controller_helpers
 from controllers.service_api import api
@@ -13,7 +13,35 @@ from fields.app_fields import (
     app_pagination_fields,
 )
 from flask_login import current_user  # type: ignore
+from typing import Any
+import flask_restful  # type: ignore
+from werkzeug.exceptions import Forbidden
+from extensions.ext_database import db
+from libs.helper import TimestampField
+from libs.login import login_required
+from models.model import ApiToken, App
+
+from ...console.wraps import account_initialization_required, setup_required
+
 ALLOW_CREATE_APP_MODES = ["agent-chat"]
+
+api_key_fields = {
+    "id": fields.fields.String,
+    "type": fields.fields.String,
+    "token": fields.fields.String,
+    "last_used_at": TimestampField,
+    "created_at": TimestampField,
+}
+api_key_list = {"data": fields.fields.List(fields.fields.Nested(api_key_fields), attribute="items")}
+
+def _get_resource(resource_id, tenant_id, resource_model):
+    resource = resource_model.query.filter_by(id=resource_id, tenant_id=tenant_id).first()
+
+    if resource is None:
+        flask_restful.abort(404, message=f"{resource_model.__name__} not found.")
+
+    return resource
+
 
 class AppParameterApi(Resource):
     """Resource for app variables."""
@@ -159,6 +187,116 @@ class AppApi(AppApiResource):
         return {"result": "success"}, 204
     
 
+class BaseApiKeyListResource(AppApiResource):
+
+    resource_type: str | None = None
+    resource_model: Any = None
+    resource_id_field: str | None = None
+    token_prefix: str | None = None
+    max_keys = 10
+
+    @marshal_with(api_key_list)
+    def get(self, resource_id):
+        assert self.resource_id_field is not None, "resource_id_field must be set"
+        resource_id = str(resource_id)
+        _get_resource(resource_id, current_user.current_tenant_id, self.resource_model)
+        keys = (
+            db.session.query(ApiToken)
+            .filter(ApiToken.type == self.resource_type, getattr(ApiToken, self.resource_id_field) == resource_id)
+            .all()
+        )
+        return {"items": keys}
+
+    @marshal_with(api_key_fields)
+    def post(self, resource_id):
+        assert self.resource_id_field is not None, "resource_id_field must be set"
+        resource_id = str(resource_id)
+        _get_resource(resource_id, current_user.current_tenant_id, self.resource_model)
+        if not current_user.is_editor:
+            raise Forbidden()
+
+        current_key_count = (
+            db.session.query(ApiToken)
+            .filter(ApiToken.type == self.resource_type, getattr(ApiToken, self.resource_id_field) == resource_id)
+            .count()
+        )
+
+        if current_key_count >= self.max_keys:
+            flask_restful.abort(
+                400,
+                message=f"Cannot create more than {self.max_keys} API keys for this resource type.",
+                code="max_keys_exceeded",
+            )
+
+        key = ApiToken.generate_api_key(self.token_prefix, 24)
+        api_token = ApiToken()
+        setattr(api_token, self.resource_id_field, resource_id)
+        api_token.tenant_id = current_user.current_tenant_id
+        api_token.token = key
+        api_token.type = self.resource_type
+        db.session.add(api_token)
+        db.session.commit()
+        return api_token, 201
+
+
+class BaseApiKeyResource(AppApiResource):
+
+    resource_type: str | None = None
+    resource_model: Any = None
+    resource_id_field: str | None = None
+
+    def delete(self, resource_id, api_key_id):
+        assert self.resource_id_field is not None, "resource_id_field must be set"
+        resource_id = str(resource_id)
+        api_key_id = str(api_key_id)
+        _get_resource(resource_id, current_user.current_tenant_id, self.resource_model)
+
+        # The role of the current user in the ta table must be admin or owner
+        if not current_user.is_admin_or_owner:
+            raise Forbidden()
+
+        key = (
+            db.session.query(ApiToken)
+            .filter(
+                getattr(ApiToken, self.resource_id_field) == resource_id,
+                ApiToken.type == self.resource_type,
+                ApiToken.id == api_key_id,
+            )
+            .first()
+        )
+
+        if key is None:
+            flask_restful.abort(404, message="API key not found")
+
+        db.session.query(ApiToken).filter(ApiToken.id == api_key_id).delete()
+        db.session.commit()
+
+        return {"result": "success"}, 204
+
+
+class AppApiKeyListResource(BaseApiKeyListResource):
+    def after_request(self, resp):
+        resp.headers["Access-Control-Allow-Origin"] = "*"
+        resp.headers["Access-Control-Allow-Credentials"] = "true"
+        return resp
+
+    resource_type = "app"
+    resource_model = App
+    resource_id_field = "app_id"
+    token_prefix = "app-"
+
+
+class AppApiKeyResource(BaseApiKeyResource):
+    def after_request(self, resp):
+        resp.headers["Access-Control-Allow-Origin"] = "*"
+        resp.headers["Access-Control-Allow-Credentials"] = "true"
+        return resp
+
+    resource_type = "app"
+    resource_model = App
+    resource_id_field = "app_id"
+    
+
 api.add_resource(AppParameterApi, "/parameters")
 api.add_resource(AppMetaApi, "/meta")
 api.add_resource(AppInfoApi, "/info")
@@ -166,3 +304,7 @@ api.add_resource(AppInfoApi, "/info")
 
 api.add_resource(AppListApi, "/apps")
 api.add_resource(AppApi, "/apps/<uuid:app_id>")
+
+
+api.add_resource(AppApiKeyListResource, "/apps/<uuid:resource_id>/api-keys")
+api.add_resource(AppApiKeyResource, "/apps/<uuid:resource_id>/api-keys/<uuid:api_key_id>")
