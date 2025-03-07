@@ -31,7 +31,7 @@ const ApiServer: FC<ApiServerProps> = ({
       <SecretKeyButton
         className='flex-shrink-0 !h-8 bg-white'
         textCls='!text-gray-700 font-medium'
-        iconCls='stroke-[1.2px]'
+        // iconCls='stroke-[1.2px]'
         type='apps'
       />
     </div>

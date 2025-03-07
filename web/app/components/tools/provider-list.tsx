@@ -35,7 +35,7 @@ const ProviderList = () => {
     { value: 'builtin', text: t('tools.type.builtIn') },
     { value: 'api', text: t('tools.type.custom') },
     { value: 'workflow', text: t('tools.type.workflow') },
-    { value: 'doc', text: t('tools.type.doc')},
+    { value: 'doc', text: t('tools.type.doc') },
   ]
   const { data } = useQuery(
     {
@@ -93,26 +93,27 @@ const ProviderList = () => {
               }}
               options={options}
             />
-            
-          {activeTab !== 'doc' && (
-            <div className='flex items-center gap-2'>
-              <LabelFilter value={tagFilterValue} onChange={handleTagsChange} />
-              <Input
-                showLeftIcon
-                showClearIcon
-                wrapperClassName='w-[200px]'
-                value={keywords}
-                onChange={e => handleKeywordsChange(e.target.value)}
-                onClear={() => handleKeywordsChange('')}
-              />
+
+            {activeTab !== 'doc' && (
+              <div className='flex items-center gap-2'>
+                <LabelFilter value={tagFilterValue} onChange={handleTagsChange} />
+                <Input
+                  showLeftIcon
+                  showClearIcon
+                  wrapperClassName='w-[200px]'
+                  value={keywords}
+                  onChange={e => handleKeywordsChange(e.target.value)}
+                  onClear={() => handleKeywordsChange('')}
+                />
               </div>
             )}
-          {activeTab === 'doc' && data && <ApiServer apiBaseUrl={data.api_base_url || ''} />}
-        </div>
+            {activeTab === 'doc' && data && <ApiServer apiBaseUrl={data.api_base_url || ''} />}
+          </div>
+
+          {activeTab === 'doc' && data && <Doc apiBaseUrl={data.api_base_url || ''} />}
           {(filteredCollectionList.length > 0 || activeTab !== 'builtin') && (
-    
-        {activeTab === 'doc' && data && <Doc apiBaseUrl={data.api_base_url || ''} />}
-        <div className={cn(
+
+            <div className={cn(
               'relative grid content-start grid-cols-1 gap-4 px-12 pt-2 pb-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 shrink-0',
               !filteredCollectionList.length && activeTab === 'workflow' && 'grow',
             )}>
@@ -142,7 +143,7 @@ const ProviderList = () => {
                   />
                 </div>
               ))}
-              {!filteredCollectionList.length && activeTab === 'workflow' && activeTab !== 'doc' && <div className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'><WorkflowToolEmpty /></div>}
+              {!filteredCollectionList.length && activeTab === 'workflow' && <div className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'><WorkflowToolEmpty /></div>}
             </div>
           )}
           {!filteredCollectionList.length && activeTab === 'builtin' && (
