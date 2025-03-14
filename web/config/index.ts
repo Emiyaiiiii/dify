@@ -162,14 +162,14 @@ export const ANNOTATION_DEFAULT = {
   score_threshold: 0.9,
 }
 
-export let maxToolsNum = 10
+export let maxToolsNum = 50
 
 if (process.env.NEXT_PUBLIC_MAX_TOOLS_NUM && process.env.NEXT_PUBLIC_MAX_TOOLS_NUM !== '')
   maxToolsNum = Number.parseInt(process.env.NEXT_PUBLIC_MAX_TOOLS_NUM)
 else if (globalThis.document?.body?.getAttribute('data-public-max-tools-num') && globalThis.document.body.getAttribute('data-public-max-tools-num') !== '')
   maxToolsNum = Number.parseInt(globalThis.document.body.getAttribute('data-public-max-tools-num') as string)
 
-export const MAX_TOOLS_NUM = maxToolsNum0
+export const MAX_TOOLS_NUM = maxToolsNum
 
 export const DEFAULT_AGENT_SETTING = {
   enabled: false,
