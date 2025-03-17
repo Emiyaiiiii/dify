@@ -3,7 +3,7 @@ FROM  node:20-alpine3.20 AS base
 LABEL maintainer="takatost@gmail.com"
 
 # if you located in China, you can use aliyun mirror to speed up
-# RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 
 RUN apk add --no-cache make gcc g++ python3 pkgconfig pixman-dev cairo-dev pango-dev libjpeg-turbo-dev
 RUN apk add --no-cache tzdata
@@ -21,9 +21,9 @@ COPY package.json .
 COPY pnpm-lock.yaml .
 
 # if you located in China, you can use taobao registry to speed up
-# RUN pnpm install --frozen-lockfile --registry https://registry.npmmirror.com/
+RUN pnpm install --frozen-lockfile --registry https://registry.npmmirror.com/
 
-RUN pnpm install --frozen-lockfile
+# RUN pnpm install --frozen-lockfile
 
 # build resources
 FROM base AS builder
