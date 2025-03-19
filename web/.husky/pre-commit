@@ -7,20 +7,20 @@ files=$(git diff --cached --name-only)
 api_modified=false
 web_modified=false
 
-for file in $files
-do
-    # Use POSIX compliant pattern matching
-    case "$file" in
-        api/*.py)
-            # set api_modified flag to true
-            api_modified=true
-            ;;
-        web/*)
-            # set web_modified flag to true
-            web_modified=true
-            ;;
-    esac
-done
+# for file in $files
+# do
+#     # Use POSIX compliant pattern matching
+#     case "$file" in
+#         api/*.py)
+#             # set api_modified flag to true
+#             api_modified=true
+#             ;;
+#         web/*)
+#             # set web_modified flag to true
+#             web_modified=true
+#             ;;
+#     esac
+# done
 
 # run linters based on the modified modules
 
