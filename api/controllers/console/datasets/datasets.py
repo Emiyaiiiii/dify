@@ -79,7 +79,7 @@ class DatasetListApi(Resource):
         data = marshal(datasets, dataset_detail_fields)
         for item in data:
             # convert embedding_model_provider to plugin standard format
-            if item["indexing_technique"] == "high_quality":
+            if item["indexing_technique"] == "high_quality" and item["embedding_model_provider"]:
                 item["embedding_model_provider"] = str(ModelProviderID(item["embedding_model_provider"]))
                 item_model = f"{item['embedding_model']}:{item['embedding_model_provider']}"
                 if item_model in model_names:
@@ -646,7 +646,6 @@ class DatasetRetrievalSettingApi(Resource):
                 | VectorType.BAIDU
                 | VectorType.VIKINGDB
                 | VectorType.UPSTASH
-                | VectorType.OCEANBASE
             ):
                 return {"retrieval_method": [RetrievalMethod.SEMANTIC_SEARCH.value]}
             case (
@@ -664,6 +663,7 @@ class DatasetRetrievalSettingApi(Resource):
                 | VectorType.COUCHBASE
                 | VectorType.MILVUS
                 | VectorType.OPENGAUSS
+                | VectorType.OCEANBASE
             ):
                 return {
                     "retrieval_method": [
@@ -692,7 +692,6 @@ class DatasetRetrievalSettingMockApi(Resource):
                 | VectorType.BAIDU
                 | VectorType.VIKINGDB
                 | VectorType.UPSTASH
-                | VectorType.OCEANBASE
             ):
                 return {"retrieval_method": [RetrievalMethod.SEMANTIC_SEARCH.value]}
             case (
@@ -708,6 +707,7 @@ class DatasetRetrievalSettingMockApi(Resource):
                 | VectorType.PGVECTOR
                 | VectorType.LINDORM
                 | VectorType.OPENGAUSS
+                | VectorType.OCEANBASE
             ):
                 return {
                     "retrieval_method": [

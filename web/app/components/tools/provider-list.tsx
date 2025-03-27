@@ -75,13 +75,13 @@ const ProviderList = () => {
 
   return (
     <>
-      <div className='relative flex overflow-hidden shrink-0 h-0 grow'>
+      <div className='relative flex h-0 shrink-0 grow overflow-hidden'>
         <div
           ref={containerRef}
-          className='relative flex flex-col overflow-y-auto bg-background-body grow'
+          className='relative flex grow flex-col overflow-y-auto bg-background-body'
         >
           <div className={cn(
-            'sticky top-0 flex justify-between items-center pt-4 px-12 pb-2 leading-[56px] bg-background-body z-20 flex-wrap gap-y-2',
+            'sticky top-0 z-20 flex flex-wrap items-center justify-between gap-y-2 bg-background-body px-12 pb-2 pt-4 leading-[56px]',
             currentProvider && 'pr-6',
           )}>
             <TabSliderNew
@@ -114,7 +114,7 @@ const ProviderList = () => {
           {(filteredCollectionList.length > 0 || activeTab !== 'builtin') && (
 
             <div className={cn(
-              'relative grid content-start grid-cols-1 gap-4 px-12 pt-2 pb-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 shrink-0',
+              'relative grid shrink-0 grid-cols-1 content-start gap-4 px-12 pb-4 pt-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4',
               !filteredCollectionList.length && activeTab === 'workflow' && 'grow',
             )}>
               {activeTab === 'api' && <CustomCreateCard onRefreshData={refetch} />}
@@ -125,7 +125,7 @@ const ProviderList = () => {
                 >
                   <Card
                     className={cn(
-                      'border-[1.5px] border-transparent cursor-pointer',
+                      'cursor-pointer border-[1.5px] border-transparent',
                       currentProvider?.id === collection.id && 'border-components-option-card-option-selected-border',
                     )}
                     hideCornerMark
@@ -143,11 +143,11 @@ const ProviderList = () => {
                   />
                 </div>
               ))}
-              {!filteredCollectionList.length && activeTab === 'workflow' && <div className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'><WorkflowToolEmpty /></div>}
+              {!filteredCollectionList.length && activeTab === 'workflow' && <div className='absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2'><WorkflowToolEmpty /></div>}
             </div>
           )}
           {!filteredCollectionList.length && activeTab === 'builtin' && (
-            <Empty lightCard text={t('tools.noTools')} className='px-12 h-[224px]' />
+            <Empty lightCard text={t('tools.noTools')} className='h-[224px] px-12' />
           )}
           {
             enable_marketplace && activeTab === 'builtin' && (
