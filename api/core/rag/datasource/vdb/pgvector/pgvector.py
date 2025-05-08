@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS {table_name} (
 """
 
 SQL_CREATE_INDEX = """
-CREATE INDEX IF NOT EXISTS embedding_cosine_v1_idx ON {table_name} 
+CREATE INDEX IF NOT EXISTS embedding_cosine_v1_idx ON {table_name}
 USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64);
 """
 
@@ -167,7 +167,6 @@ class PGVector(BaseVector):
         Search the nearest neighbors to a vector.
 
         :param query_vector: The input vector to search for similar items.
-        :param top_k: The number of nearest neighbors to return, default is 5.
         :return: List of Documents that are nearest to the query vector.
         """
         top_k = kwargs.get("top_k", 4)

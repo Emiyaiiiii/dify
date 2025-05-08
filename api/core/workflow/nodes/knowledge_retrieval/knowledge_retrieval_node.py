@@ -259,6 +259,7 @@ class KnowledgeRetrievalNode(LLMNode):
                     "_source": "knowledge",
                     "dataset_id": item.metadata.get("dataset_id"),
                     "dataset_name": item.metadata.get("dataset_name"),
+                    "document_id": item.metadata.get("document_id") or item.metadata.get("title"),
                     "document_name": item.metadata.get("title"),
                     "data_source_type": "external",
                     "retriever_from": "workflow",
@@ -332,8 +333,9 @@ class KnowledgeRetrievalNode(LLMNode):
             automatic_metadata_filters = self._automatic_metadata_filter_func(dataset_ids, query, node_data)
             if automatic_metadata_filters:
                 conditions = []
-                for filter in automatic_metadata_filters:
+                for sequence, filter in enumerate(automatic_metadata_filters):
                     self._process_metadata_filter_func(
+                        sequence,
                         filter.get("condition", ""),
                         filter.get("metadata_name", ""),
                         filter.get("value"),
@@ -347,14 +349,16 @@ class KnowledgeRetrievalNode(LLMNode):
                         )
                     )
                 metadata_condition = MetadataCondition(
-                    logical_operator=node_data.metadata_filtering_conditions.logical_operator,  # type: ignore
+                    logical_operator=node_data.metadata_filtering_conditions.logical_operator
+                    if node_data.metadata_filtering_conditions
+                    else "or",  # type: ignore
                     conditions=conditions,
                 )
         elif node_data.metadata_filtering_mode == "manual":
             if node_data.metadata_filtering_conditions:
                 metadata_condition = MetadataCondition(**node_data.metadata_filtering_conditions.model_dump())
                 if node_data.metadata_filtering_conditions:
-                    for condition in node_data.metadata_filtering_conditions.conditions:  # type: ignore
+                    for sequence, condition in enumerate(node_data.metadata_filtering_conditions.conditions):  # type: ignore
                         metadata_name = condition.name
                         expected_value = condition.value
                         if expected_value is not None or condition.comparison_operator in ("empty", "not empty"):
@@ -362,19 +366,26 @@ class KnowledgeRetrievalNode(LLMNode):
                                 expected_value = self.graph_runtime_state.variable_pool.convert_template(
                                     expected_value
                                 ).value[0]
-                                if expected_value.value_type == "number":
-                                    expected_value = expected_value.value
-                                elif expected_value.value_type == "string":
-                                    expected_value = re.sub(r"[\r\n\t]+", " ", expected_value.text).strip()
+                                if expected_value.value_type == "number":  # type: ignore
+                                    expected_value = expected_value.value  # type: ignore
+                                elif expected_value.value_type == "string":  # type: ignore
+                                    expected_value = re.sub(r"[\r\n\t]+", " ", expected_value.text).strip()  # type: ignore
                                 else:
                                     raise ValueError("Invalid expected metadata value type")
                             filters = self._process_metadata_filter_func(
-                                condition.comparison_operator, metadata_name, expected_value, filters
+                                sequence,
+                                condition.comparison_operator,
+                                metadata_name,
+                                expected_value,
+                                filters,
                             )
         else:
             raise ValueError("Invalid metadata filtering mode")
         if filters:
-            if node_data.metadata_filtering_conditions.logical_operator == "and":  # type: ignore
+            if (
+                node_data.metadata_filtering_conditions
+                and node_data.metadata_filtering_conditions.logical_operator == "and"
+            ):  # type: ignore
                 document_query = document_query.filter(and_(*filters))
             else:
                 document_query = document_query.filter(or_(*filters))
@@ -448,25 +459,35 @@ class KnowledgeRetrievalNode(LLMNode):
             return []
         return automatic_metadata_filters
 
-    def _process_metadata_filter_func(self, condition: str, metadata_name: str, value: Optional[str], filters: list):
+    def _process_metadata_filter_func(
+        self, sequence: int, condition: str, metadata_name: str, value: Optional[Any], filters: list
+    ):
+        key = f"{metadata_name}_{sequence}"
+        key_value = f"{metadata_name}_{sequence}_value"
         match condition:
             case "contains":
                 filters.append(
-                    (text("documents.doc_metadata ->> :key LIKE :value")).params(key=metadata_name, value=f"%{value}%")
+                    (text(f"documents.doc_metadata ->> :{key} LIKE :{key_value}")).params(
+                        **{key: metadata_name, key_value: f"%{value}%"}
+                    )
                 )
             case "not contains":
                 filters.append(
-                    (text("documents.doc_metadata ->> :key NOT LIKE :value")).params(
-                        key=metadata_name, value=f"%{value}%"
+                    (text(f"documents.doc_metadata ->> :{key} NOT LIKE :{key_value}")).params(
+                        **{key: metadata_name, key_value: f"%{value}%"}
                     )
                 )
             case "start with":
                 filters.append(
-                    (text("documents.doc_metadata ->> :key LIKE :value")).params(key=metadata_name, value=f"{value}%")
+                    (text(f"documents.doc_metadata ->> :{key} LIKE :{key_value}")).params(
+                        **{key: metadata_name, key_value: f"{value}%"}
+                    )
                 )
             case "end with":
                 filters.append(
-                    (text("documents.doc_metadata ->> :key LIKE :value")).params(key=metadata_name, value=f"%{value}")
+                    (text(f"documents.doc_metadata ->> :{key} LIKE :{key_value}")).params(
+                        **{key: metadata_name, key_value: f"%{value}"}
+                    )
                 )
             case "=" | "is":
                 if isinstance(value, str):
@@ -581,7 +602,6 @@ class KnowledgeRetrievalNode(LLMNode):
     def _get_prompt_template(self, node_data: KnowledgeRetrievalNodeData, metadata_fields: list, query: str):
         model_mode = ModelMode.value_of(node_data.metadata_model_config.mode)  # type: ignore
         input_text = query
-        memory_str = ""
 
         prompt_messages: list[LLMNodeChatModelMessage] = []
         if model_mode == ModelMode.CHAT:

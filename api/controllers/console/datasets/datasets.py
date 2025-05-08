@@ -641,7 +641,6 @@ class DatasetRetrievalSettingApi(Resource):
                 VectorType.RELYT
                 | VectorType.TIDB_VECTOR
                 | VectorType.CHROMA
-                | VectorType.TENCENT
                 | VectorType.PGVECTO_RS
                 | VectorType.BAIDU
                 | VectorType.VIKINGDB
@@ -658,12 +657,16 @@ class DatasetRetrievalSettingApi(Resource):
                 | VectorType.ELASTICSEARCH
                 | VectorType.ELASTICSEARCH_JA
                 | VectorType.PGVECTOR
+                | VectorType.VASTBASE
                 | VectorType.TIDB_ON_QDRANT
                 | VectorType.LINDORM
                 | VectorType.COUCHBASE
                 | VectorType.MILVUS
                 | VectorType.OPENGAUSS
                 | VectorType.OCEANBASE
+                | VectorType.TABLESTORE
+                | VectorType.HUAWEI_CLOUD
+                | VectorType.TENCENT
             ):
                 return {
                     "retrieval_method": [
@@ -687,7 +690,6 @@ class DatasetRetrievalSettingMockApi(Resource):
                 | VectorType.RELYT
                 | VectorType.TIDB_VECTOR
                 | VectorType.CHROMA
-                | VectorType.TENCENT
                 | VectorType.PGVECTO_RS
                 | VectorType.BAIDU
                 | VectorType.VIKINGDB
@@ -705,9 +707,13 @@ class DatasetRetrievalSettingMockApi(Resource):
                 | VectorType.ELASTICSEARCH_JA
                 | VectorType.COUCHBASE
                 | VectorType.PGVECTOR
+                | VectorType.VASTBASE
                 | VectorType.LINDORM
                 | VectorType.OPENGAUSS
                 | VectorType.OCEANBASE
+                | VectorType.TABLESTORE
+                | VectorType.TENCENT
+                | VectorType.HUAWEI_CLOUD
             ):
                 return {
                     "retrieval_method": [

@@ -203,7 +203,7 @@ class OceanBaseVector(BaseVector):
 
             full_sql = f"""SELECT metadata, text, MATCH (text) AGAINST (:query) AS score
             FROM {self._collection_name}
-            WHERE MATCH (text) AGAINST (:query) > 0 
+            WHERE MATCH (text) AGAINST (:query) > 0
             {where_clause}
             ORDER BY score DESC
             LIMIT {top_k}"""
@@ -296,5 +296,6 @@ class OceanBaseVectorFactory(AbstractVectorFactory):
                 user=dify_config.OCEANBASE_VECTOR_USER or "",
                 password=(dify_config.OCEANBASE_VECTOR_PASSWORD or ""),
                 database=dify_config.OCEANBASE_VECTOR_DATABASE or "",
+                enable_hybrid_search=dify_config.OCEANBASE_ENABLE_HYBRID_SEARCH or False,
             ),
         )
