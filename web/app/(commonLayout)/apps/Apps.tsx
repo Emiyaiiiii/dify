@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next'
 import { useDebounceFn } from 'ahooks'
 import {
   RiApps2Line,
+  RiDragDropLine,
   RiExchange2Line,
   RiFile4Line,
   RiMessage3Line,
@@ -16,7 +17,8 @@ import {
 } from '@remixicon/react'
 import AppCard from './AppCard'
 import NewAppCard from './NewAppCard'
-import useAppsQueryState from './hooks/useAppsQueryState'
+import useAppsQueryState from './hooks/use-apps-query-state'
+import { useDSLDragDrop } from './hooks/use-dsl-drag-drop'
 import type { AppListResponse } from '@/models/app'
 import { fetchAppList } from '@/service/apps'
 import { useAppContext } from '@/context/app-context'
@@ -34,6 +36,7 @@ import { useQuery } from '@tanstack/react-query'
 import { fetchApiBaseUrl } from '@/service/apps'
 import Doc from '@/app/components/app/externalAPI/doc'
 
+import CreateFromDSLModal from '@/app/components/app/create-from-dsl-modal'
 
 const getKey = (
   pageIndex: number,
@@ -43,7 +46,7 @@ const getKey = (
   tags: string[],
   keywords: string,
 ) => {
-  if ((!pageIndex || previousPageData.has_more) && activeTab!== 'doc') {
+  if ((!pageIndex || previousPageData.has_more) && activeTab !== 'doc') {
     const params: any = { url: 'apps', params: { page: pageIndex + 1, limit: 30, name: keywords, is_created_by_me: isCreatedByMe } }
 
     if (activeTab !== 'all')
@@ -72,6 +75,9 @@ const Apps = () => {
   const [tagFilterValue, setTagFilterValue] = useState<string[]>(tagIDs)
   const [searchKeywords, setSearchKeywords] = useState(keywords)
   const newAppCardRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [showCreateFromDSLModal, setShowCreateFromDSLModal] = useState(false)
+  const [droppedDSLFile, setDroppedDSLFile] = useState<File | undefined>()
   const setKeywords = useCallback((keywords: string) => {
     setQuery(prev => ({ ...prev, keywords }))
   }, [setQuery])
@@ -85,6 +91,17 @@ const Apps = () => {
       enabled: activeTab === 'doc',
     },
   )
+
+  const handleDSLFileDropped = useCallback((file: File) => {
+    setDroppedDSLFile(file)
+    setShowCreateFromDSLModal(true)
+  }, [])
+
+  const { dragging } = useDSLDragDrop({
+    onDSLFileDropped: handleDSLFileDropped,
+    containerRef,
+    enabled: isCurrentWorkspaceEditor,
+  })
 
   const { data, isLoading, error, setSize, mutate } = useSWRInfinite(
     (pageIndex: number, previousPageData: AppListResponse) => getKey(pageIndex, previousPageData, activeTab, isCreatedByMe, tagIDs, searchKeywords),
@@ -100,16 +117,15 @@ const Apps = () => {
   const anchorRef = useRef<HTMLDivElement>(null)
   const options = [
     { value: 'all', text: t('app.types.all'), icon: <RiApps2Line className='mr-1 h-[14px] w-[14px]' /> },
+    { value: 'workflow', text: t('app.types.workflow'), icon: <RiExchange2Line className='mr-1 h-[14px] w-[14px]' /> },
+    { value: 'advanced-chat', text: t('app.types.advanced'), icon: <RiMessage3Line className='mr-1 h-[14px] w-[14px]' /> },
     { value: 'chat', text: t('app.types.chatbot'), icon: <RiMessage3Line className='mr-1 h-[14px] w-[14px]' /> },
     { value: 'agent-chat', text: t('app.types.agent'), icon: <RiRobot3Line className='mr-1 h-[14px] w-[14px]' /> },
     { value: 'completion', text: t('app.types.completion'), icon: <RiFile4Line className='mr-1 h-[14px] w-[14px]' /> },
-    { value: 'advanced-chat', text: t('app.types.advanced'), icon: <RiMessage3Line className='mr-1 h-[14px] w-[14px]' /> },
-    { value: 'workflow', text: t('app.types.workflow'), icon: <RiExchange2Line className='mr-1 h-[14px] w-[14px]' /> },
     { value: 'doc', text: t('app.types.doc') },
   ]
 
   useEffect(() => {
-    document.title = `${t('common.menus.apps')} - Dify`
     if (localStorage.getItem(NEED_REFRESH_APP_LIST_KEY) === '1') {
       localStorage.removeItem(NEED_REFRESH_APP_LIST_KEY)
       mutate()
@@ -165,55 +181,88 @@ const Apps = () => {
 
   return (
     <>
-      <div className='sticky top-0 z-10 flex flex-wrap items-center justify-between gap-y-2 bg-background-body px-12 pb-2 pt-4 leading-[56px]'>
-        <TabSliderNew
-          value={activeTab}
-          onChange={setActiveTab}
-          options={options}
-        />
-        {activeTab !== 'doc' && (
-          <div className='flex items-center gap-2'>
-            <CheckboxWithLabel
-              className='mr-2'
-              label={t('app.showMyCreatedAppsOnly')}
-              isChecked={isCreatedByMe}
-              onChange={handleCreatedByMeChange}
-            />
-            <TagFilter type='app' value={tagFilterValue} onChange={handleTagsChange} />
-            <Input
-              showLeftIcon
-              showClearIcon
-              wrapperClassName='w-[200px]'
-              value={keywords}
-              onChange={e => handleKeywordsChange(e.target.value)}
-              onClear={() => handleKeywordsChange('')}
-            />
+      <div ref={containerRef} className='relative flex h-0 shrink-0 grow flex-col overflow-y-auto bg-background-body'>
+        {dragging && (
+          <div className="absolute inset-0 z-50 m-0.5 rounded-2xl border-2 border-dashed border-components-dropzone-border-accent bg-[rgba(21,90,239,0.14)] p-2">
           </div>
         )}
-        {activeTab === 'doc' && apiServerData && <ApiServer apiBaseUrl={apiServerData.api_base_url || ''} />}
-      </div>
-      {activeTab !== 'doc' && (
-        <div>
-          {(data && data[0].total > 0)
-            ? <div className='relative grid grow grid-cols-1 content-start gap-4 px-12 pt-2 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5 2k:grid-cols-6'>
-              {isCurrentWorkspaceEditor
-                && <NewAppCard ref={newAppCardRef} onSuccess={mutate} />}
-              {data.map(({ data: apps }) => apps.map(app => (
-                <AppCard key={app.id} app={app} onRefresh={mutate} />
-              )))}
+
+        <div className='sticky top-0 z-10 flex flex-wrap items-center justify-between gap-y-2 bg-background-body px-12 pb-2 pt-4 leading-[56px]'>
+          <TabSliderNew
+            value={activeTab}
+            onChange={setActiveTab}
+            options={options}
+          />
+          {activeTab !== 'doc' && (
+            <div className='flex items-center gap-2'>
+              <CheckboxWithLabel
+                className='mr-2'
+                label={t('app.showMyCreatedAppsOnly')}
+                isChecked={isCreatedByMe}
+                onChange={handleCreatedByMeChange}
+              />
+              <TagFilter type='app' value={tagFilterValue} onChange={handleTagsChange} />
+              <Input
+                showLeftIcon
+                showClearIcon
+                wrapperClassName='w-[200px]'
+                value={keywords}
+                onChange={e => handleKeywordsChange(e.target.value)}
+                onClear={() => handleKeywordsChange('')}
+              />
             </div>
-            : <div className='relative grid grow grid-cols-1 content-start gap-4 overflow-hidden px-12 pt-2 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5 2k:grid-cols-6'>
-              {isCurrentWorkspaceEditor
-                && <NewAppCard ref={newAppCardRef} className='z-10' onSuccess={mutate} />}
-              <NoAppsFound />
-          </div>}
-          <CheckModal />
-          <div ref={anchorRef} className='h-0'> </div>
-          {showTagManagementModal && (
-            <TagManagementModal type='app' show={showTagManagementModal} />
           )}
+          {activeTab === 'doc' && apiServerData && <ApiServer apiBaseUrl={apiServerData.api_base_url || ''} />}
         </div>
-      )}
+        {activeTab !== 'doc' && (
+          <div>
+            {(data && data[0].total > 0)
+              ? <div className='relative grid grow grid-cols-1 content-start gap-4 px-12 pt-2 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5 2k:grid-cols-6'>
+                {isCurrentWorkspaceEditor
+                  && <NewAppCard ref={newAppCardRef} onSuccess={mutate} />}
+                {data.map(({ data: apps }) => apps.map(app => (
+                  <AppCard key={app.id} app={app} onRefresh={mutate} />
+                )))}
+              </div>
+              : <div className='relative grid grow grid-cols-1 content-start gap-4 overflow-hidden px-12 pt-2 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5 2k:grid-cols-6'>
+                {isCurrentWorkspaceEditor
+                  && <NewAppCard ref={newAppCardRef} className='z-10' onSuccess={mutate} />}
+                <NoAppsFound />
+              </div>}
+
+            {isCurrentWorkspaceEditor && (
+              <div
+                className={`flex items-center justify-center gap-2 py-4 ${dragging ? 'text-text-accent' : 'text-text-quaternary'}`}
+                role="region"
+                aria-label={t('app.newApp.dropDSLToCreateApp')}
+              >
+                <RiDragDropLine className="h-4 w-4" />
+                <span className="system-xs-regular">{t('app.newApp.dropDSLToCreateApp')}</span>
+              </div>
+            )}
+            <CheckModal />
+            <div ref={anchorRef} className='h-0'> </div>
+            {showTagManagementModal && (
+              <TagManagementModal type='app' show={showTagManagementModal} />
+            )}
+          </div>
+        )}
+        {showCreateFromDSLModal && (
+          <CreateFromDSLModal
+            show={showCreateFromDSLModal}
+            onClose={() => {
+              setShowCreateFromDSLModal(false)
+              setDroppedDSLFile(undefined)
+            }}
+            onSuccess={() => {
+              setShowCreateFromDSLModal(false)
+              setDroppedDSLFile(undefined)
+              mutate()
+            }}
+            droppedFile={droppedDSLFile}
+          />
+        )}
+      </div>
       {activeTab === 'doc' && apiServerData && <Doc apiBaseUrl={apiServerData.api_base_url || ''} />}
     </>
   )
