@@ -14,14 +14,10 @@ import CustomCreateCard from '@/app/components/tools/provider/custom-create-card
 import WorkflowToolEmpty from '@/app/components/tools/add-tool-modal/empty'
 import Card from '@/app/components/plugins/card'
 import CardMoreInfo from '@/app/components/plugins/card/card-more-info'
-import Doc from '@/app/components/tools/externalAPI/doc'
 import PluginDetailPanel from '@/app/components/plugins/plugin-detail-panel'
 import MCPList from './mcp'
 import { useAllToolProviders } from '@/service/use-tools'
 import { useInstalledPluginList, useInvalidateInstalledPluginList } from '@/service/use-plugins'
-import { useQuery } from '@tanstack/react-query'
-import { fetchApiBaseUrl } from '@/service/tools'
-import ApiServer from './externalAPI/ApiServer'
 import { useGlobalPublicStore } from '@/context/global-public-context'
 import { ToolTypeEnum } from '../workflow/block-selector/types'
 import { useMarketplace } from './marketplace/hooks'
@@ -48,7 +44,7 @@ const ProviderList = () => {
   const containerRef = useRef<HTMLDivElement>(null)
 
   const [activeTab, setActiveTab] = useTabSearchParams({
-    defaultTab: 'api',
+    defaultTab: 'builtin',
   })
   const options = [
     { value: 'builtin', text: t('tools.type.builtIn') },
