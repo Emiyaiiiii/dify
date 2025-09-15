@@ -1,5 +1,5 @@
 'use client'
-import type { FC } from 'react'
+import type { FC, JSX } from 'react'
 import React, { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useBoolean } from 'ahooks'
@@ -179,7 +179,7 @@ const ConfigPopup: FC<PopupProps> = ({
       onConfig={handleOnConfig(TracingProvider.aliyun)}
       isChosen={chosenProvider === TracingProvider.aliyun}
       onChoose={handleOnChoose(TracingProvider.aliyun)}
-      key="alyun-provider-panel"
+      key="aliyun-provider-panel"
     />
   )
   const configuredProviderPanel = () => {

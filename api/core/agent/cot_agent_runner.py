@@ -72,6 +72,8 @@ class CotAgentRunner(BaseAgentRunner, ABC):
         function_call_state = True
         llm_usage: dict[str, Optional[LLMUsage]] = {"usage": None}
         final_answer = ""
+        prompt_messages: list = []  # Initialize prompt_messages
+        agent_thought_id = ""  # Initialize agent_thought_id
 
         def increase_usage(final_llm_usage_dict: dict[str, Optional[LLMUsage]], usage: LLMUsage):
             if not final_llm_usage_dict["usage"]:
@@ -97,13 +99,13 @@ class CotAgentRunner(BaseAgentRunner, ABC):
 
             message_file_ids: list[str] = []
 
-            agent_thought = self.create_agent_thought(
+            agent_thought_id = self.create_agent_thought(
                 message_id=message.id, message="", tool_name="", tool_input="", messages_ids=message_file_ids
             )
 
             if iteration_step > 1:
                 self.queue_manager.publish(
-                    QueueAgentThoughtEvent(agent_thought_id=agent_thought.id), PublishFrom.APPLICATION_MANAGER
+                    QueueAgentThoughtEvent(agent_thought_id=agent_thought_id), PublishFrom.APPLICATION_MANAGER
                 )
 
             # recalc llm max tokens
@@ -133,7 +135,7 @@ class CotAgentRunner(BaseAgentRunner, ABC):
             # publish agent thought if it's first iteration
             if iteration_step == 1:
                 self.queue_manager.publish(
-                    QueueAgentThoughtEvent(agent_thought_id=agent_thought.id), PublishFrom.APPLICATION_MANAGER
+                    QueueAgentThoughtEvent(agent_thought_id=agent_thought_id), PublishFrom.APPLICATION_MANAGER
                 )
 
             for chunk in react_chunks:
@@ -168,7 +170,7 @@ class CotAgentRunner(BaseAgentRunner, ABC):
                 usage_dict["usage"] = LLMUsage.empty_usage()
 
             self.save_agent_thought(
-                agent_thought=agent_thought,
+                agent_thought_id=agent_thought_id,
                 tool_name=(scratchpad.action.action_name if scratchpad.action and not scratchpad.is_final() else ""),
                 tool_input={scratchpad.action.action_name: scratchpad.action.action_input} if scratchpad.action else {},
                 tool_invoke_meta={},
@@ -181,7 +183,7 @@ class CotAgentRunner(BaseAgentRunner, ABC):
 
             if not scratchpad.is_final():
                 self.queue_manager.publish(
-                    QueueAgentThoughtEvent(agent_thought_id=agent_thought.id), PublishFrom.APPLICATION_MANAGER
+                    QueueAgentThoughtEvent(agent_thought_id=agent_thought_id), PublishFrom.APPLICATION_MANAGER
                 )
 
             if not scratchpad.action:
@@ -197,7 +199,7 @@ class CotAgentRunner(BaseAgentRunner, ABC):
                             final_answer = scratchpad.action.action_input
                         else:
                             final_answer = f"{scratchpad.action.action_input}"
-                    except json.JSONDecodeError:
+                    except TypeError:
                         final_answer = f"{scratchpad.action.action_input}"
                 else:
                     function_call_state = True
@@ -212,7 +214,7 @@ class CotAgentRunner(BaseAgentRunner, ABC):
                     scratchpad.agent_response = tool_invoke_response
 
                     self.save_agent_thought(
-                        agent_thought=agent_thought,
+                        agent_thought_id=agent_thought_id,
                         tool_name=scratchpad.action.action_name,
                         tool_input={scratchpad.action.action_name: scratchpad.action.action_input},
                         thought=scratchpad.thought or "",
@@ -224,7 +226,7 @@ class CotAgentRunner(BaseAgentRunner, ABC):
                     )
 
                     self.queue_manager.publish(
-                        QueueAgentThoughtEvent(agent_thought_id=agent_thought.id), PublishFrom.APPLICATION_MANAGER
+                        QueueAgentThoughtEvent(agent_thought_id=agent_thought_id), PublishFrom.APPLICATION_MANAGER
                     )
 
                 # update prompt tool message
@@ -244,7 +246,7 @@ class CotAgentRunner(BaseAgentRunner, ABC):
 
         # save agent thought
         self.save_agent_thought(
-            agent_thought=agent_thought,
+            agent_thought_id=agent_thought_id,
             tool_name="",
             tool_input={},
             tool_invoke_meta={},
@@ -338,7 +340,7 @@ class CotAgentRunner(BaseAgentRunner, ABC):
 
         return instruction
 
-    def _init_react_state(self, query) -> None:
+    def _init_react_state(self, query):
         """
         init agent scratchpad
         """

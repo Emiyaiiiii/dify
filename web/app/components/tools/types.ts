@@ -7,7 +7,8 @@ export enum LOC {
 
 export enum AuthType {
   none = 'none',
-  apiKey = 'api_key',
+  apiKeyHeader = 'api_key_header',
+  apiKeyQuery = 'api_key_query',
 }
 
 export enum AuthHeaderPrefix {
@@ -21,6 +22,7 @@ export type Credential = {
   api_key_header?: string
   api_key_value?: string
   api_key_header_prefix?: AuthHeaderPrefix
+  api_key_query_param?: string
 }
 
 export enum CollectionType {
@@ -29,7 +31,7 @@ export enum CollectionType {
   custom = 'api',
   model = 'model',
   workflow = 'workflow',
-  doc = "externalAPI"
+  mcp = 'mcp',
 }
 
 export type Emoji = {
@@ -51,6 +53,14 @@ export type Collection = {
   labels: string[]
   plugin_id?: string
   letter?: string
+  // MCP Server
+  server_url?: string
+  updated_at?: number
+  server_identifier?: string
+  timeout?: number
+  sse_read_timeout?: number
+  headers?: Record<string, string>
+  masked_headers?: Record<string, string>
 }
 
 export type ToolParameter = {
@@ -168,4 +178,13 @@ export type WorkflowToolProviderResponse = {
     parameters: ParamItem[]
   }
   privacy_policy: string
+}
+
+export type MCPServerDetail = {
+  id: string
+  server_code: string
+  description: string
+  status: string
+  parameters?: Record<string, string>
+  headers?: Record<string, string>
 }

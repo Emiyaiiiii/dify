@@ -1,9 +1,8 @@
-import datetime
 import json
 
 from flask import request
 from flask_login import current_user
-from flask_restful import Resource, marshal_with, reqparse
+from flask_restx import Resource, marshal_with, reqparse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from werkzeug.exceptions import NotFound
@@ -11,10 +10,12 @@ from werkzeug.exceptions import NotFound
 from controllers.console import api
 from controllers.console.wraps import account_initialization_required, setup_required
 from core.indexing_runner import IndexingRunner
+from core.rag.extractor.entity.datasource_type import DatasourceType
 from core.rag.extractor.entity.extract_setting import ExtractSetting
 from core.rag.extractor.notion_extractor import NotionExtractor
 from extensions.ext_database import db
 from fields.data_source_fields import integrate_list_fields, integrate_notion_info_list_fields
+from libs.datetime_utils import naive_utc_now
 from libs.login import login_required
 from models import DataSourceOauthBinding, Document
 from services.dataset_service import DatasetService, DocumentService
@@ -28,14 +29,12 @@ class DataSourceApi(Resource):
     @marshal_with(integrate_list_fields)
     def get(self):
         # get workspace data source integrates
-        data_source_integrates = (
-            db.session.query(DataSourceOauthBinding)
-            .filter(
+        data_source_integrates = db.session.scalars(
+            select(DataSourceOauthBinding).where(
                 DataSourceOauthBinding.tenant_id == current_user.current_tenant_id,
                 DataSourceOauthBinding.disabled == False,
             )
-            .all()
-        )
+        ).all()
 
         base_url = request.url_root.rstrip("/")
         data_source_oauth_base_path = "/console/api/oauth/data-source"
@@ -88,7 +87,7 @@ class DataSourceApi(Resource):
         if action == "enable":
             if data_source_binding.disabled:
                 data_source_binding.disabled = False
-                data_source_binding.updated_at = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
+                data_source_binding.updated_at = naive_utc_now()
                 db.session.add(data_source_binding)
                 db.session.commit()
             else:
@@ -97,7 +96,7 @@ class DataSourceApi(Resource):
         if action == "disable":
             if not data_source_binding.disabled:
                 data_source_binding.disabled = True
-                data_source_binding.updated_at = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
+                data_source_binding.updated_at = naive_utc_now()
                 db.session.add(data_source_binding)
                 db.session.commit()
             else:
@@ -171,7 +170,7 @@ class DataSourceNotionApi(Resource):
         page_id = str(page_id)
         with Session(db.engine) as session:
             data_source_binding = session.execute(
-                select(DataSourceOauthBinding).filter(
+                select(DataSourceOauthBinding).where(
                     db.and_(
                         DataSourceOauthBinding.tenant_id == current_user.current_tenant_id,
                         DataSourceOauthBinding.provider == "notion",
@@ -214,7 +213,7 @@ class DataSourceNotionApi(Resource):
             workspace_id = notion_info["workspace_id"]
             for page in notion_info["pages"]:
                 extract_setting = ExtractSetting(
-                    datasource_type="notion_import",
+                    datasource_type=DatasourceType.NOTION.value,
                     notion_info={
                         "notion_workspace_id": workspace_id,
                         "notion_obj_id": page["page_id"],
@@ -248,7 +247,7 @@ class DataSourceNotionDatasetSyncApi(Resource):
         documents = DocumentService.get_document_by_dataset_id(dataset_id_str)
         for document in documents:
             document_indexing_sync_task.delay(dataset_id_str, document.id)
-        return 200
+        return {"result": "success"}, 200
 
 
 class DataSourceNotionDocumentSyncApi(Resource):
@@ -266,7 +265,7 @@ class DataSourceNotionDocumentSyncApi(Resource):
         if document is None:
             raise NotFound("Document not found.")
         document_indexing_sync_task.delay(dataset_id_str, document_id_str)
-        return 200
+        return {"result": "success"}, 200
 
 
 api.add_resource(DataSourceApi, "/data-source/integrates", "/data-source/integrates/<uuid:binding_id>/<string:action>")

@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from enum import Enum
+from enum import Enum, StrEnum, auto
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -17,16 +17,16 @@ class ConfigurateMethod(Enum):
     CUSTOMIZABLE_MODEL = "customizable-model"
 
 
-class FormType(Enum):
+class FormType(StrEnum):
     """
     Enum class for form type.
     """
 
     TEXT_INPUT = "text-input"
     SECRET_INPUT = "secret-input"
-    SELECT = "select"
-    RADIO = "radio"
-    SWITCH = "switch"
+    SELECT = auto()
+    RADIO = auto()
+    SWITCH = auto()
 
 
 class FormShowOnObject(BaseModel):
@@ -123,6 +123,8 @@ class ProviderEntity(BaseModel):
     description: Optional[I18nObject] = None
     icon_small: Optional[I18nObject] = None
     icon_large: Optional[I18nObject] = None
+    icon_small_dark: Optional[I18nObject] = None
+    icon_large_dark: Optional[I18nObject] = None
     background: Optional[str] = None
     help: Optional[ProviderHelpEntity] = None
     supported_model_types: Sequence[ModelType]

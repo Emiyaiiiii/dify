@@ -51,7 +51,7 @@ class File(BaseModel):
     # It should be set to `ToolFile.id` when `transfer_method` is `tool_file`.
     related_id: Optional[str] = None
     filename: Optional[str] = None
-    extension: Optional[str] = Field(default=None, description="File extension, should contains dot")
+    extension: Optional[str] = Field(default=None, description="File extension, should contain dot")
     mime_type: Optional[str] = None
     size: int = -1
 
@@ -146,3 +146,11 @@ class File(BaseModel):
                 if not self.related_id:
                     raise ValueError("Missing file related_id")
         return self
+
+    @property
+    def storage_key(self) -> str:
+        return self._storage_key
+
+    @storage_key.setter
+    def storage_key(self, value: str):
+        self._storage_key = value

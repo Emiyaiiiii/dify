@@ -1,5 +1,7 @@
 from typing import Optional
 
+from sqlalchemy import select
+
 from constants.languages import languages
 from extensions.ext_database import db
 from models.model import App, RecommendedApp
@@ -13,7 +15,7 @@ class DatabaseRecommendAppRetrieval(RecommendAppRetrievalBase):
     Retrieval recommended app from database
     """
 
-    def get_recommended_apps_and_categories(self, language: str) -> dict:
+    def get_recommended_apps_and_categories(self, language: str):
         result = self.fetch_recommended_apps_from_db(language)
         return result
 
@@ -25,24 +27,20 @@ class DatabaseRecommendAppRetrieval(RecommendAppRetrievalBase):
         return RecommendAppType.DATABASE
 
     @classmethod
-    def fetch_recommended_apps_from_db(cls, language: str) -> dict:
+    def fetch_recommended_apps_from_db(cls, language: str):
         """
         Fetch recommended apps from db.
         :param language: language
         :return:
         """
-        recommended_apps = (
-            db.session.query(RecommendedApp)
-            .filter(RecommendedApp.is_listed == True, RecommendedApp.language == language)
-            .all()
-        )
+        recommended_apps = db.session.scalars(
+            select(RecommendedApp).where(RecommendedApp.is_listed == True, RecommendedApp.language == language)
+        ).all()
 
         if len(recommended_apps) == 0:
-            recommended_apps = (
-                db.session.query(RecommendedApp)
-                .filter(RecommendedApp.is_listed == True, RecommendedApp.language == languages[0])
-                .all()
-            )
+            recommended_apps = db.session.scalars(
+                select(RecommendedApp).where(RecommendedApp.is_listed == True, RecommendedApp.language == languages[0])
+            ).all()
 
         categories = set()
         recommended_apps_result = []
@@ -83,7 +81,7 @@ class DatabaseRecommendAppRetrieval(RecommendAppRetrievalBase):
         # is in public recommended list
         recommended_app = (
             db.session.query(RecommendedApp)
-            .filter(RecommendedApp.is_listed == True, RecommendedApp.app_id == app_id)
+            .where(RecommendedApp.is_listed == True, RecommendedApp.app_id == app_id)
             .first()
         )
 
@@ -91,7 +89,7 @@ class DatabaseRecommendAppRetrieval(RecommendAppRetrievalBase):
             return None
 
         # get app detail
-        app_model = db.session.query(App).filter(App.id == app_id).first()
+        app_model = db.session.query(App).where(App.id == app_id).first()
         if not app_model or not app_model.is_public:
             return None
 

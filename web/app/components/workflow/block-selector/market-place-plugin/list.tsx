@@ -1,5 +1,5 @@
 'use client'
-import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from 'react'
+import React, { useEffect, useImperativeHandle, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import useStickyScroll, { ScrollPosition } from '../use-sticky-scroll'
 import Item from './item'
@@ -17,18 +17,20 @@ export type ListProps = {
   tags: string[]
   toolContentClassName?: string
   disableMaxWidth?: boolean
+  ref?: React.Ref<ListRef>
 }
 
 export type ListRef = { handleScroll: () => void }
 
-const List = forwardRef<ListRef, ListProps>(({
+const List = ({
   wrapElemRef,
   searchText,
   tags,
   list,
   toolContentClassName,
   disableMaxWidth = false,
-}, ref) => {
+  ref,
+}: ListProps) => {
   const { t } = useTranslation()
   const hasFilter = !searchText
   const hasRes = list.length > 0
@@ -56,7 +58,6 @@ const List = forwardRef<ListRef, ListProps>(({
 
   useEffect(() => {
     handleScroll()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [list])
 
   const handleHeadClick = () => {
@@ -80,7 +81,7 @@ const List = forwardRef<ListRef, ListProps>(({
     )
   }
 
-  const maxWidthClassName = toolContentClassName || 'max-w-[300px]'
+  const maxWidthClassName = toolContentClassName || 'max-w-[100%]'
 
   return (
     <>
@@ -109,22 +110,24 @@ const List = forwardRef<ListRef, ListProps>(({
             onAction={noop}
           />
         ))}
-        <div className='mb-3 mt-2 flex items-center justify-center space-x-2'>
-          <div className="h-[2px] w-[90px] bg-gradient-to-l from-[rgba(16,24,40,0.08)] to-[rgba(255,255,255,0.01)]"></div>
-          <Link
-            href={urlWithSearchText}
-            target='_blank'
-            className='system-sm-medium flex h-4 shrink-0 items-center text-text-accent-light-mode-only'
-          >
-            <RiSearchLine className='mr-0.5 h-3 w-3' />
-            <span>{t('plugin.searchInMarketplace')}</span>
-          </Link>
-          <div className="h-[2px] w-[90px] bg-gradient-to-l from-[rgba(255,255,255,0.01)] to-[rgba(16,24,40,0.08)]"></div>
-        </div>
+        {list.length > 0 && (
+          <div className='mb-3 mt-2 flex items-center justify-center space-x-2'>
+            <div className="h-[2px] w-[90px] bg-gradient-to-l from-[rgba(16,24,40,0.08)] to-[rgba(255,255,255,0.01)]"></div>
+            <Link
+              href={urlWithSearchText}
+              target='_blank'
+              className='system-sm-medium flex h-4 shrink-0 items-center text-text-accent-light-mode-only'
+            >
+              <RiSearchLine className='mr-0.5 h-3 w-3' />
+              <span>{t('plugin.searchInMarketplace')}</span>
+            </Link>
+            <div className="h-[2px] w-[90px] bg-gradient-to-l from-[rgba(255,255,255,0.01)] to-[rgba(16,24,40,0.08)]"></div>
+          </div>
+        )}
       </div>
     </>
   )
-})
+}
 
 List.displayName = 'List'
 
