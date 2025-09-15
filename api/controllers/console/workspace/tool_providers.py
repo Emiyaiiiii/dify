@@ -8,7 +8,7 @@ from flask_restx import (
     reqparse,
 )
 from werkzeug.exceptions import Forbidden
-from controllers.console.apikey import api_key_fields, api_key_list
+
 from configs import dify_config
 from controllers.console import api
 from controllers.console.wraps import (
@@ -1088,8 +1088,3 @@ api.add_resource(ToolApiListApi, "/workspaces/current/tools/api")
 api.add_resource(ToolMCPListAllApi, "/workspaces/current/tools/mcp")
 api.add_resource(ToolWorkflowListApi, "/workspaces/current/tools/workflow")
 api.add_resource(ToolLabelsApi, "/workspaces/current/tool-labels")
-
-# provide tool Api Key
-api.add_resource(ToolApiKeyApi, "/workspaces/api-keys")
-api.add_resource(ToolApiDeleteApi, "/workspaces/api-keys/<uuid:api_key_id>")
-api.add_resource(ToolApiBaseUrlApi, "/workspaces/api-base-info")
