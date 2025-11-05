@@ -3,8 +3,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 from faker import Faker
 
+from enums.cloud_plan import CloudPlan
 from extensions.ext_database import db
-from models.account import Account, Tenant, TenantAccountJoin, TenantAccountRole
+from models import Account, Tenant, TenantAccountJoin, TenantAccountRole
 from models.dataset import Dataset, Document
 from tasks.document_indexing_task import document_indexing_task
 
@@ -72,7 +73,7 @@ class TestDocumentIndexingTask:
         join = TenantAccountJoin(
             tenant_id=tenant.id,
             account_id=account.id,
-            role=TenantAccountRole.OWNER.value,
+            role=TenantAccountRole.OWNER,
             current=True,
         )
         db.session.add(join)
@@ -154,7 +155,7 @@ class TestDocumentIndexingTask:
         join = TenantAccountJoin(
             tenant_id=tenant.id,
             account_id=account.id,
-            role=TenantAccountRole.OWNER.value,
+            role=TenantAccountRole.OWNER,
             current=True,
         )
         db.session.add(join)
@@ -197,7 +198,7 @@ class TestDocumentIndexingTask:
         # Configure billing features
         mock_external_service_dependencies["features"].billing.enabled = billing_enabled
         if billing_enabled:
-            mock_external_service_dependencies["features"].billing.subscription.plan = "sandbox"
+            mock_external_service_dependencies["features"].billing.subscription.plan = CloudPlan.SANDBOX
             mock_external_service_dependencies["features"].vector_space.limit = 100
             mock_external_service_dependencies["features"].vector_space.size = 50
 
@@ -442,7 +443,7 @@ class TestDocumentIndexingTask:
         )
 
         # Configure sandbox plan with batch limit
-        mock_external_service_dependencies["features"].billing.subscription.plan = "sandbox"
+        mock_external_service_dependencies["features"].billing.subscription.plan = CloudPlan.SANDBOX
 
         # Create more documents than sandbox plan allows (limit is 1)
         fake = Faker()
