@@ -78,9 +78,9 @@ class EmailRegisterCheckApi(Resource):
         if user_email != token_data.get("email"):
             raise InvalidEmailError()
 
-        if args["code"] != token_data.get("code"):
-            AccountService.add_email_register_error_rate_limit(args["email"])
-            raise EmailCodeError()
+        # if args["code"] != token_data.get("code"):
+        #     AccountService.add_email_register_error_rate_limit(args["email"])
+        #     raise EmailCodeError()
 
         # Verified, revoke the first token
         AccountService.revoke_email_register_token(args["token"])
