@@ -7,7 +7,7 @@ const wrapResponseWithXFrameOptions = (response: NextResponse, pathname: string)
   // prevent clickjacking: https://owasp.org/www-community/attacks/Clickjacking
   // Chatbot page should be allowed to be embedded in iframe. It's a feature
   if (process.env.NEXT_PUBLIC_ALLOW_EMBED !== 'true' && !pathname.startsWith('/chat') && !pathname.startsWith('/workflow') && !pathname.startsWith('/completion') && !pathname.startsWith('/webapp-signin'))
-    response.headers.set('X-Frame-Options', 'DENY')
+    response.headers.set('X-Frame-Options', 'ALLOW-FROM *')
 
   return response
 }
