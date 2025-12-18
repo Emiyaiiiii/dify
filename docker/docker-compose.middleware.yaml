@@ -80,7 +80,7 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      db:
+      db_postgres:
         condition: service_healthy
     environment:
       - GIN_MODE=release
