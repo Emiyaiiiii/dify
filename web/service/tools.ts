@@ -9,13 +9,6 @@ import type {
   WorkflowToolProviderRequest,
   WorkflowToolProviderResponse,
 } from '@/app/components/tools/types'
-import type { ToolWithProvider } from '@/app/components/workflow/types'
-import type { Label } from '@/app/components/tools/labels/constant'
-import type {
-  ApiKeysListResponse,
-  CreateApiKeyResponse,
-} from '@/models/app'
-import type { CommonResponse } from '@/models/common'
 import { buildProviderQuery } from './_tools_util'
 
 export const fetchCollectionList = () => {
@@ -116,26 +109,6 @@ export const testAPIAvailable = (payload: any) => {
       ...payload,
     },
   })
-}
-
-export const fetchAllBuiltInTools = () => {
-  return get<ToolWithProvider[]>('/workspaces/current/tools/builtin')
-}
-
-export const fetchAllCustomTools = () => {
-  return get<ToolWithProvider[]>('/workspaces/current/tools/api')
-}
-
-export const fetchAllWorkflowTools = () => {
-  return get<ToolWithProvider[]>('/workspaces/current/tools/workflow')
-}
-
-export const fetchAllMCPTools = () => {
-  return get<ToolWithProvider[]>('/workspaces/current/tools/mcp')
-}
-
-export const fetchLabelList = () => {
-  return get<Label[]>('/workspaces/current/tool-labels')
 }
 
 export const createWorkflowToolProvider = (payload: WorkflowToolProviderRequest & { workflow_app_id: string }) => {
