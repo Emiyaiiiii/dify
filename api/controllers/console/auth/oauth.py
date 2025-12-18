@@ -13,7 +13,7 @@ from events.tenant_event import tenant_was_created
 from extensions.ext_database import db
 from libs.datetime_utils import naive_utc_now
 from libs.helper import extract_remote_ip
-from libs.oauth import GitHubOAuth, GoogleOAuth, OAuthUserInfo
+from libs.oauth import GitHubOAuth, CasdoorOAuth, OAuthUserInfo
 from libs.token import (
     set_access_token_to_cookie,
     set_csrf_token_to_cookie,
@@ -41,16 +41,16 @@ def get_oauth_providers():
                 client_secret=dify_config.GITHUB_CLIENT_SECRET,
                 redirect_uri=dify_config.CONSOLE_API_URL + "/console/api/oauth/authorize/github",
             )
-        if not dify_config.GOOGLE_CLIENT_ID or not dify_config.GOOGLE_CLIENT_SECRET:
-            google_oauth = None
+        if not dify_config.CASDOOR_CLIENT_ID or not dify_config.CASDOOR_CLIENT_SECRET:
+            casdoor_oauth = None
         else:
-            google_oauth = GoogleOAuth(
-                client_id=dify_config.GOOGLE_CLIENT_ID,
-                client_secret=dify_config.GOOGLE_CLIENT_SECRET,
-                redirect_uri=dify_config.CONSOLE_API_URL + "/console/api/oauth/authorize/google",
+            casdoor_oauth = CasdoorOAuth(
+                client_id=dify_config.CASDOOR_CLIENT_ID,
+                client_secret=dify_config.CASDOOR_CLIENT_SECRET,
+                redirect_uri=dify_config.CONSOLE_API_URL + "/console/api/oauth/authorize/casdoor",
             )
 
-        OAUTH_PROVIDERS = {"github": github_oauth, "google": google_oauth}
+        OAUTH_PROVIDERS = {"github": github_oauth, "casdoor": casdoor_oauth}
         return OAUTH_PROVIDERS
 
 
@@ -59,7 +59,7 @@ class OAuthLogin(Resource):
     @console_ns.doc("oauth_login")
     @console_ns.doc(description="Initiate OAuth login process")
     @console_ns.doc(
-        params={"provider": "OAuth provider name (github/google)", "invite_token": "Optional invitation token"}
+        params={"provider": "OAuth provider name (github/casdoor)", "invite_token": "Optional invitation token"}
     )
     @console_ns.response(302, "Redirect to OAuth authorization URL")
     @console_ns.response(400, "Invalid provider")
@@ -81,7 +81,7 @@ class OAuthCallback(Resource):
     @console_ns.doc(description="Handle OAuth callback and complete login process")
     @console_ns.doc(
         params={
-            "provider": "OAuth provider name (github/google)",
+            "provider": "OAuth provider name (github/casdoor)",
             "code": "Authorization code from OAuth provider",
             "state": "Optional state parameter (used for invite token)",
         }

@@ -87,7 +87,7 @@ class GitHubOAuth(OAuth):
         return OAuthUserInfo(id=str(raw_info["id"]), name=raw_info["name"], email=email)
 
 
-class GoogleOAuth(OAuth):
+class CasdoorOAuth(OAuth):
     _AUTH_URL = "http://localhost:8000/login/oauth/authorize"
     _TOKEN_URL = "http://localhost:8000/api/login/oauth/access_token"
     _USER_INFO_URL = "http://localhost:8000/api/userinfo?accessToken"
@@ -118,7 +118,7 @@ class GoogleOAuth(OAuth):
         access_token = response_json.get("access_token")
 
         if not access_token:
-            raise ValueError(f"Error in Google OAuth: {response_json}")
+            raise ValueError(f"Error in Casdoor OAuth: {response_json}")
 
         return access_token
 

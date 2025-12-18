@@ -797,13 +797,13 @@ class AuthConfig(BaseSettings):
         default=None,
     )
 
-    GOOGLE_CLIENT_ID: str | None = Field(
-        description="Google OAuth client ID",
+    CASDOOR_CLIENT_ID: str | None = Field(
+        description="Casdoor OAuth client ID",
         default=None,
     )
 
-    GOOGLE_CLIENT_SECRET: str | None = Field(
-        description="Google OAuth client secret",
+    CASDOOR_CLIENT_SECRET: str | None = Field(
+        description="Casdoor OAuth client secret",
         default=None,
     )
 
