@@ -88,9 +88,9 @@ class GitHubOAuth(OAuth):
 
 
 class GoogleOAuth(OAuth):
-    _AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
-    _TOKEN_URL = "https://oauth2.googleapis.com/token"
-    _USER_INFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
+    _AUTH_URL = "http://localhost:8000/login/oauth/authorize"
+    _TOKEN_URL = "http://localhost:8000/api/login/oauth/access_token"
+    _USER_INFO_URL = "http://localhost:8000/api/userinfo?accessToken"
 
     def get_authorization_url(self, invite_token: str | None = None):
         params = {

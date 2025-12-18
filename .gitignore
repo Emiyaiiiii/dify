@@ -164,6 +164,7 @@ docker-legacy/volumes/pgvector/data/*
 
 docker/volumes/app/storage/*
 docker/volumes/certbot/*
+docker/volumes/casdoor/*
 docker/volumes/db/data/*
 docker/volumes/redis/data/*
 docker/volumes/weaviate/*
