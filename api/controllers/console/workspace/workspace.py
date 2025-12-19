@@ -176,6 +176,32 @@ class TenantApi(Resource):
         return WorkspaceService.get_tenant_info(tenant), 200
 
 
+@console_ns.route("/workspaces/current/hierarchy")
+class WorkspaceHierarchyApi(Resource):
+    @setup_required
+    @login_required
+    @account_initialization_required
+    def get(self):
+        current_user, current_tenant_id = current_account_with_tenant()
+        if not current_tenant_id:
+            return {"hierarchy": []}
+        
+        # 获取当前工作空间的层级结构
+        hierarchy = WorkspaceService.get_tenant_hierarchy(current_tenant_id)
+        return {"hierarchy": hierarchy}
+
+
+@console_ns.route("/workspaces/hierarchy")
+class AllWorkspacesHierarchyApi(Resource):
+    @setup_required
+    @login_required
+    @account_initialization_required
+    def get(self):
+        # 获取所有工作空间的层级结构
+        hierarchy = WorkspaceService.get_all_tenants_with_hierarchy()
+        return {"hierarchy": hierarchy}
+
+
 @console_ns.route("/workspaces/switch")
 class SwitchWorkspaceApi(Resource):
     @console_ns.expect(console_ns.models[SwitchWorkspacePayload.__name__])

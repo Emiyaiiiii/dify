@@ -148,6 +148,10 @@ export const fetchWorkspaces: Fetcher<{ workspaces: IWorkspace[] }, { url: strin
   return get<{ workspaces: IWorkspace[] }>(url, { params })
 }
 
+export const fetchWorkspacesHierarchy: Fetcher<{ hierarchy: Array<{ id: string; name: string; children: Array<{ id: string; name: string; children: any[] }> }> }, { url: string; params: Record<string, any> }> = ({ url, params }) => {
+  return get<{ hierarchy: Array<{ id: string; name: string; children: Array<{ id: string; name: string; children: any[] }> }> }>(url, { params })
+}
+
 export const switchWorkspace: Fetcher<CommonResponse & { new_tenant: IWorkspace }, { url: string; body: Record<string, any> }> = ({ url, body }) => {
   return post<CommonResponse & { new_tenant: IWorkspace }>(url, { body })
 }

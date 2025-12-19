@@ -321,8 +321,11 @@ class DatasetService:
         return dataset
 
     @staticmethod
-    def get_dataset(dataset_id) -> Dataset | None:
-        dataset: Dataset | None = db.session.query(Dataset).filter_by(id=dataset_id).first()
+    def get_dataset(dataset_id: str, tenant_id: str | None = None) -> Dataset | None:
+        query = select(Dataset).where(Dataset.id == dataset_id)
+        if tenant_id:
+            query = query.where(Dataset.tenant_id == tenant_id)
+        dataset: Dataset | None = db.session.scalars(query).first()
         return dataset
 
     @staticmethod
@@ -1288,52 +1291,59 @@ class DocumentService:
             return None
 
     @staticmethod
-    def get_document_by_id(document_id: str) -> Document | None:
-        document = db.session.query(Document).where(Document.id == document_id).first()
-
+    def get_document_by_id(document_id: str, tenant_id: str | None = None) -> Document | None:
+        query = select(Document).where(Document.id == document_id)
+        if tenant_id:
+            query = query.join(Dataset, Document.dataset_id == Dataset.id).where(Dataset.tenant_id == tenant_id)
+        document = db.session.scalars(query).first()
         return document
 
     @staticmethod
-    def get_document_by_ids(document_ids: list[str]) -> Sequence[Document]:
-        documents = db.session.scalars(
-            select(Document).where(
-                Document.id.in_(document_ids),
-                Document.enabled == True,
-                Document.indexing_status == "completed",
-                Document.archived == False,
-            )
-        ).all()
+    def get_document_by_ids(document_ids: list[str], tenant_id: str | None = None) -> Sequence[Document]:
+        query = select(Document).where(
+            Document.id.in_(document_ids),
+            Document.enabled == True,
+            Document.indexing_status == "completed",
+            Document.archived == False,
+        )
+        if tenant_id:
+            query = query.join(Dataset, Document.dataset_id == Dataset.id).where(Dataset.tenant_id == tenant_id)
+        documents = db.session.scalars(query).all()
         return documents
 
     @staticmethod
-    def get_document_by_dataset_id(dataset_id: str) -> Sequence[Document]:
-        documents = db.session.scalars(
-            select(Document).where(
-                Document.dataset_id == dataset_id,
-                Document.enabled == True,
-            )
-        ).all()
-
+    def get_document_by_dataset_id(dataset_id: str, tenant_id: str | None = None) -> Sequence[Document]:
+        query = select(Document).where(
+            Document.dataset_id == dataset_id,
+            Document.enabled == True,
+        )
+        if tenant_id:
+            query = query.join(Dataset, Document.dataset_id == Dataset.id).where(Dataset.tenant_id == tenant_id)
+        documents = db.session.scalars(query).all()
         return documents
 
     @staticmethod
-    def get_working_documents_by_dataset_id(dataset_id: str) -> Sequence[Document]:
-        documents = db.session.scalars(
-            select(Document).where(
-                Document.dataset_id == dataset_id,
-                Document.enabled == True,
-                Document.indexing_status == "completed",
-                Document.archived == False,
-            )
-        ).all()
-
+    def get_working_documents_by_dataset_id(dataset_id: str, tenant_id: str | None = None) -> Sequence[Document]:
+        query = select(Document).where(
+            Document.dataset_id == dataset_id,
+            Document.enabled == True,
+            Document.indexing_status == "completed",
+            Document.archived == False,
+        )
+        if tenant_id:
+            query = query.join(Dataset, Document.dataset_id == Dataset.id).where(Dataset.tenant_id == tenant_id)
+        documents = db.session.scalars(query).all()
         return documents
 
     @staticmethod
-    def get_error_documents_by_dataset_id(dataset_id: str) -> Sequence[Document]:
-        documents = db.session.scalars(
-            select(Document).where(Document.dataset_id == dataset_id, Document.indexing_status.in_(["error", "paused"]))
-        ).all()
+    def get_error_documents_by_dataset_id(dataset_id: str, tenant_id: str | None = None) -> Sequence[Document]:
+        query = select(Document).where(
+            Document.dataset_id == dataset_id,
+            Document.indexing_status.in_(["error", "paused"])
+        )
+        if tenant_id:
+            query = query.join(Dataset, Document.dataset_id == Dataset.id).where(Dataset.tenant_id == tenant_id)
+        documents = db.session.scalars(query).all()
         return documents
 
     @staticmethod

@@ -41,7 +41,7 @@ export default function SocialAuth(props: SocialAuthProps) {
       </a>
     </div>
     <div className='w-full'>
-      <a href={getOAuthLink('/oauth/login/google')}>
+      <a href={getOAuthLink('/oauth/login/casdoor')}>
         <Button
           disabled={props.disabled}
           className='w-full'

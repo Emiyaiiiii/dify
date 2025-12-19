@@ -241,6 +241,8 @@ class Tenant(TypeBase):
         StringUUID, insert_default=lambda: str(uuid4()), default_factory=lambda: str(uuid4()), init=False
     )
     name: Mapped[str] = mapped_column(String(255))
+    parent_id: Mapped[str | None] = mapped_column(StringUUID, nullable=True, default=None)
+    casdoor_org_id: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None)
     encrypt_public_key: Mapped[str | None] = mapped_column(LongText, default=None)
     plan: Mapped[str] = mapped_column(String(255), server_default=sa.text("'basic'"), default="basic")
     status: Mapped[str] = mapped_column(String(255), server_default=sa.text("'normal'"), default="normal")
@@ -252,6 +254,7 @@ class Tenant(TypeBase):
         DateTime, server_default=func.current_timestamp(), init=False, onupdate=func.current_timestamp()
     )
 
+    @property
     def get_accounts(self) -> list[Account]:
         return list(
             db.session.scalars(
@@ -268,6 +271,14 @@ class Tenant(TypeBase):
     @custom_config_dict.setter
     def custom_config_dict(self, value: dict[str, Any]) -> None:
         self.custom_config = json.dumps(value)
+
+    @property
+    def is_root(self) -> bool:
+        return self.parent_id is None
+
+    @property
+    def is_child(self) -> bool:
+        return self.parent_id is not None
 
 
 class TenantAccountJoin(TypeBase):
@@ -403,4 +414,25 @@ class TenantPluginAutoUpgradeStrategy(TypeBase):
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.current_timestamp(), init=False, onupdate=func.current_timestamp()
+    )
+
+
+class CasdoorOrganizationMapping(TypeBase):
+    __tablename__ = "casdoor_organization_mappings"
+    __table_args__ = (
+        sa.PrimaryKeyConstraint("id", name="casdoor_organization_mapping_pkey"),
+        sa.UniqueConstraint("casdoor_org_id", name="unique_casdoor_org_id"),
+        sa.UniqueConstraint("tenant_id", name="unique_tenant_id"),
+    )
+
+    id: Mapped[str] = mapped_column(
+        StringUUID, insert_default=lambda: str(uuid4()), default_factory=lambda: str(uuid4()), init=False
+    )
+    casdoor_org_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    tenant_id: Mapped[str] = mapped_column(StringUUID, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.current_timestamp(), nullable=False, init=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.current_timestamp(), init=False, onupdate=func.current_timestamp()
     )

@@ -800,12 +800,59 @@ class TestTenantModel:
         mock_db.session.scalars.return_value = mock_scalars
 
         # Act
-        accounts = tenant.get_accounts()
+        accounts = tenant.get_accounts
 
         # Assert
         assert len(accounts) == 2
         assert account1 in accounts
         assert account2 in accounts
+
+    def test_tenant_parent_child_relationship(self):
+        """Test tenant parent-child relationship."""
+        # Arrange
+        parent_tenant = Tenant(name="Parent Workspace")
+        parent_tenant.id = str(uuid4())
+        
+        child_tenant = Tenant(name="Child Workspace")
+        child_tenant.id = str(uuid4())
+        child_tenant.parent_id = parent_tenant.id
+
+        # Act & Assert
+        assert parent_tenant.is_root is True
+        assert parent_tenant.is_child is False
+        assert child_tenant.is_root is False
+        assert child_tenant.is_child is True
+        assert child_tenant.parent_id == parent_tenant.id
+
+    def test_tenant_casdoor_org_id(self):
+        """Test tenant casdoor_org_id field."""
+        # Arrange
+        tenant = Tenant(name="Test Workspace")
+        tenant.casdoor_org_id = "casdoor-org-123"
+
+        # Act & Assert
+        assert tenant.casdoor_org_id == "casdoor-org-123"
+
+
+class TestCasdoorOrganizationMapping:
+    """Test suite for CasdoorOrganizationMapping model."""
+
+    def test_casdoor_organization_mapping_creation(self):
+        """Test creating a CasdoorOrganizationMapping."""
+        # Arrange
+        from models.account import CasdoorOrganizationMapping
+        
+        tenant_id = str(uuid4())
+        
+        # Act
+        mapping = CasdoorOrganizationMapping(
+            casdoor_org_id="casdoor-org-123",
+            tenant_id=tenant_id
+        )
+
+        # Assert
+        assert mapping.casdoor_org_id == "casdoor-org-123"
+        assert mapping.tenant_id == tenant_id
 
 
 class TestTenantStatusEnum:

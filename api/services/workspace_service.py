@@ -48,3 +48,56 @@ class WorkspaceService:
             }
 
         return tenant_info
+    
+    @classmethod
+    def get_tenant_hierarchy(cls, tenant_id: str) -> dict:
+        """获取工作空间层级结构"""
+        tenant = db.session.query(Tenant).filter_by(id=tenant_id).first()
+        if not tenant:
+            return {}
+        
+        # 递归获取子工作空间
+        def get_children(tenant_id: str) -> list:
+            children = db.session.query(Tenant).filter_by(parent_id=tenant_id).all()
+            result = []
+            for child in children:
+                result.append({
+                    "id": child.id,
+                    "name": child.name,
+                    "children": get_children(child.id)
+                })
+            return result
+        
+        return {
+            "id": tenant.id,
+            "name": tenant.name,
+            "children": get_children(tenant.id)
+        }
+    
+    @classmethod
+    def get_all_tenants_with_hierarchy(cls) -> list:
+        """获取所有工作空间的层级结构"""
+        # 获取所有根工作空间
+        root_tenants = db.session.query(Tenant).filter_by(parent_id=None).all()
+        
+        result = []
+        for tenant in root_tenants:
+            # 递归获取子工作空间
+            def get_children(tenant_id: str) -> list:
+                children = db.session.query(Tenant).filter_by(parent_id=tenant_id).all()
+                child_list = []
+                for child in children:
+                    child_list.append({
+                        "id": child.id,
+                        "name": child.name,
+                        "children": get_children(child.id)
+                    })
+                return child_list
+            
+            result.append({
+                "id": tenant.id,
+                "name": tenant.name,
+                "children": get_children(tenant.id)
+            })
+        
+        return result

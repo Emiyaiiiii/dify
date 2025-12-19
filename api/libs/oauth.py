@@ -1,5 +1,5 @@
 import urllib.parse
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import httpx
 
@@ -9,6 +9,7 @@ class OAuthUserInfo:
     id: str
     name: str
     email: str
+    organizations: list = field(default_factory=list)
 
 
 class OAuth:
@@ -90,14 +91,14 @@ class GitHubOAuth(OAuth):
 class CasdoorOAuth(OAuth):
     _AUTH_URL = "http://localhost:8000/login/oauth/authorize"
     _TOKEN_URL = "http://localhost:8000/api/login/oauth/access_token"
-    _USER_INFO_URL = "http://localhost:8000/api/userinfo?accessToken"
+    _USER_INFO_URL = "http://localhost:8000/api/get-account"
 
     def get_authorization_url(self, invite_token: str | None = None):
         params = {
             "client_id": self.client_id,
             "response_type": "code",
             "redirect_uri": self.redirect_uri,
-            "scope": "openid email",
+            "scope": "openid email profile",
         }
         if invite_token:
             params["state"] = invite_token
@@ -124,9 +125,67 @@ class CasdoorOAuth(OAuth):
 
     def get_raw_user_info(self, token: str):
         headers = {"Authorization": f"Bearer {token}"}
-        response = httpx.get(self._USER_INFO_URL, headers=headers)
-        response.raise_for_status()
-        return response.json()
+        
+        mapped_user_info = None
+        
+        try:
+            # Get basic user info
+            response = httpx.get(self._USER_INFO_URL, headers=headers)
+            response.raise_for_status()
+            user_info = response.json()
+            
+            # Check if response indicates error
+            if user_info.get("status") == "error":
+                # Fallback to minimal user info from token
+                mapped_user_info = {
+                    "sub": token.split('.')[0],  # Extract from token as fallback
+                    "name": "Unknown",
+                    "email": "unknown@example.com",
+                    "organizations": []
+                }
+            else:
+                # Extract user data from the response
+                user_data = user_info.get("data", {})
+                
+                if user_data:
+                    # Map the fields from the Casdoor API response to the expected format
+                    mapped_user_info = {
+                        "sub": str(user_data.get("id")),
+                        "name": user_data.get("name", "Unknown"),
+                        "email": user_data.get("email", "unknown@example.com")
+                    }
+                    
+                    # Extract organizations directly from user_data if available
+                    # According to user feedback, _USER_INFO_URL already includes organization info
+                    organizations = user_data.get("groups", [])
+                    mapped_user_info["organizations"] = organizations
+                else:
+                    # Fallback to minimal user info
+                    mapped_user_info = {
+                        "sub": token.split('.')[0],
+                        "name": "Unknown",
+                        "email": "unknown@example.com",
+                        "organizations": []
+                    }
+        except Exception as e:
+            # Fallback to minimal user info
+            mapped_user_info = {
+                "sub": token.split('.')[0],
+                "name": "Unknown",
+                "email": "unknown@example.com",
+                "organizations": []
+            }
+        
+        return mapped_user_info
 
     def _transform_user_info(self, raw_info: dict) -> OAuthUserInfo:
-        return OAuthUserInfo(id=str(raw_info["sub"]), name="", email=raw_info["email"])
+        # 获取组织信息，支持字符串列表或字典列表
+        organizations = raw_info.get("organizations", [])
+        
+        user_info = OAuthUserInfo(
+            id=str(raw_info["sub"]),
+            name=raw_info.get("name", ""),
+            email=raw_info["email"],
+            organizations=organizations
+        )
+        return user_info

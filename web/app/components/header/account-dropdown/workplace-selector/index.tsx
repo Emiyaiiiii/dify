@@ -1,20 +1,64 @@
-import { Fragment } from 'react'
+import { Fragment, useState } from 'react'
 import { useContext } from 'use-context-selector'
 import { useTranslation } from 'react-i18next'
 import { Menu, MenuButton, MenuItems, Transition } from '@headlessui/react'
-import { RiArrowDownSLine } from '@remixicon/react'
+import { RiArrowDownSLine, RiArrowRightSLine } from '@remixicon/react'
 import cn from '@/utils/classnames'
 import { basePath } from '@/utils/var'
 import PlanBadge from '@/app/components/header/plan-badge'
 import { switchWorkspace } from '@/service/common'
-import { useWorkspacesContext } from '@/context/workspace-context'
+import { useWorkspacesContext, type WorkspaceTreeNode } from '@/context/workspace-context'
 import { ToastContext } from '@/app/components/base/toast'
 import type { Plan } from '@/app/components/billing/type'
+
+const WorkspaceTreeItem = ({ workspace, handleSwitchWorkspace }: { workspace: WorkspaceTreeNode; handleSwitchWorkspace: (tenant_id: string) => void }) => {
+  const [isExpanded, setIsExpanded] = useState(false)
+  const hasChildren = workspace.children.length > 0
+
+  return (
+    <div className="w-full">
+      <div 
+        className='flex items-center gap-2 self-stretch rounded-lg py-1 pl-3 pr-2 hover:bg-state-base-hover' 
+        key={workspace.id} 
+        onClick={() => handleSwitchWorkspace(workspace.id)}
+      >
+        {hasChildren && (
+          <button
+            className="h-4 w-4 flex-shrink-0 flex items-center justify-center text-text-tertiary"
+            onClick={(e) => {
+              e.stopPropagation()
+              setIsExpanded(!isExpanded)
+            }}
+          >
+            {isExpanded ? (
+              <RiArrowDownSLine className="h-3 w-3" />
+            ) : (
+              <RiArrowRightSLine className="h-3 w-3" />
+            )}
+          </button>
+        )}
+        {!hasChildren && <div className="h-4 w-4" />}
+        <div className='flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-components-icon-bg-blue-solid text-[13px]'>
+          <span className='h-6 bg-gradient-to-r from-components-avatar-shape-fill-stop-0 to-components-avatar-shape-fill-stop-100 bg-clip-text align-middle font-semibold uppercase leading-6 text-shadow-shadow-1 opacity-90'>{workspace?.name[0]?.toLocaleUpperCase()}</span>
+        </div>
+        <div className='system-md-regular line-clamp-1 grow cursor-pointer overflow-hidden text-ellipsis text-text-secondary'>{workspace.name}</div>
+        <PlanBadge plan={workspace.plan as Plan} />
+      </div>
+      {hasChildren && isExpanded && (
+        <div className="ml-4 border-l border-components-panel-border pl-2">
+          {workspace.children.map(child => (
+            <WorkspaceTreeItem key={child.id} workspace={child} handleSwitchWorkspace={handleSwitchWorkspace} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 const WorkplaceSelector = () => {
   const { t } = useTranslation()
   const { notify } = useContext(ToastContext)
-  const { workspaces } = useWorkspacesContext()
+  const { workspaces, workspacesHierarchy } = useWorkspacesContext()
   const currentWorkspace = workspaces.find(v => v.current)
 
   const handleSwitchWorkspace = async (tenant_id: string) => {
@@ -72,22 +116,27 @@ const WorkplaceSelector = () => {
                     <span className='system-xs-medium-uppercase flex-1 text-text-tertiary'>{t('common.userProfile.workspace')}</span>
                   </div>
                   {
-                    workspaces.map(workspace => (
-                      <div className='flex items-center gap-2 self-stretch rounded-lg py-1 pl-3 pr-2 hover:bg-state-base-hover' key={workspace.id} onClick={() => handleSwitchWorkspace(workspace.id)}>
-                        <div className='flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-components-icon-bg-blue-solid text-[13px]'>
-                          <span className='h-6 bg-gradient-to-r from-components-avatar-shape-fill-stop-0 to-components-avatar-shape-fill-stop-100 bg-clip-text align-middle font-semibold uppercase leading-6 text-shadow-shadow-1 opacity-90'>{workspace?.name[0]?.toLocaleUpperCase()}</span>
+                    workspacesHierarchy.length > 0 ? (
+                      workspacesHierarchy.map(workspace => (
+                        <WorkspaceTreeItem key={workspace.id} workspace={workspace} handleSwitchWorkspace={handleSwitchWorkspace} />
+                      ))
+                    ) : (
+                      workspaces.map(workspace => (
+                        <div className='flex items-center gap-2 self-stretch rounded-lg py-1 pl-3 pr-2 hover:bg-state-base-hover' key={workspace.id} onClick={() => handleSwitchWorkspace(workspace.id)}>
+                          <div className='flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-components-icon-bg-blue-solid text-[13px]'>
+                            <span className='h-6 bg-gradient-to-r from-components-avatar-shape-fill-stop-0 to-components-avatar-shape-fill-stop-100 bg-clip-text align-middle font-semibold uppercase leading-6 text-shadow-shadow-1 opacity-90'>{workspace?.name[0]?.toLocaleUpperCase()}</span>
+                          </div>
+                          <div className='system-md-regular line-clamp-1 grow cursor-pointer overflow-hidden text-ellipsis text-text-secondary'>{workspace.name}</div>
+                          <PlanBadge plan={workspace.plan as Plan} />
                         </div>
-                        <div className='system-md-regular line-clamp-1 grow cursor-pointer overflow-hidden text-ellipsis text-text-secondary'>{workspace.name}</div>
-                        <PlanBadge plan={workspace.plan as Plan} />
-                      </div>
-                    ))
+                      ))
+                    )
                   }
                 </div>
               </MenuItems>
             </Transition>
           </>
-        )
-      }
+        )}
     </Menu>
   )
 }
