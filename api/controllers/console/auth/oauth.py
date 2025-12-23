@@ -281,7 +281,7 @@ def _sync_user_organizations(account: Account, user_info: OAuthUserInfo):
                     if tenant_id not in user_tenant_ids:
                         tenant = db.session.query(Tenant).filter_by(id=tenant_id).first()
                         if tenant:
-                            TenantService.create_tenant_member(tenant, account, role="owner")
+                            TenantService.create_tenant_member(tenant, account, role="admin")
                             user_tenant_ids.append(tenant_id)
             else:
                 # 处理没有"/"的情况（简单组织）
@@ -316,7 +316,7 @@ def _sync_user_organizations(account: Account, user_info: OAuthUserInfo):
                 if tenant_id not in user_tenant_ids:
                     tenant = db.session.query(Tenant).filter_by(id=tenant_id).first()
                     if tenant:
-                        TenantService.create_tenant_member(tenant, account, role="owner")
+                        TenantService.create_tenant_member(tenant, account, role="admin")
                         user_tenant_ids.append(tenant_id)
 
     # 如果用户没有当前工作空间，设置第一个组织作为当前工作空间
