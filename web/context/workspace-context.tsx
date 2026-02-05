@@ -1,9 +1,9 @@
 'use client'
 
+import type { IWorkspace } from '@/models/common'
 import { createContext, useContext } from 'use-context-selector'
 import useSWR from 'swr'
-import { fetchWorkspaces, fetchWorkspacesHierarchy } from '@/service/common'
-import type { IWorkspace } from '@/models/common'
+import { useWorkspaces, fetchWorkspacesHierarchy } from '@/service/use-common'
 
 export type WorkspaceTreeNode = {
   id: string

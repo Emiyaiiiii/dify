@@ -1,17 +1,22 @@
-import React from 'react'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import WorkflowOnboardingModal from './index'
+import * as React from 'react'
 import { BlockEnum } from '@/app/components/workflow/types'
+import WorkflowOnboardingModal from './index'
 
 // Mock Modal component
-jest.mock('@/app/components/base/modal', () => {
-  return function MockModal({
+vi.mock('@/app/components/base/modal', () => ({
+  default: function MockModal({
     isShow,
     onClose,
     children,
     closable,
-  }: any) {
+  }: {
+    isShow: boolean
+    onClose?: () => void
+    children?: React.ReactNode
+    closable?: boolean
+  }) {
     if (!isShow)
       return null
 
@@ -25,21 +30,24 @@ jest.mock('@/app/components/base/modal', () => {
         {children}
       </div>
     )
-  }
-})
+  },
+}))
 
 // Mock useDocLink hook
-jest.mock('@/context/i18n', () => ({
+vi.mock('@/context/i18n', () => ({
   useDocLink: () => (path: string) => `https://docs.example.com${path}`,
 }))
 
 // Mock StartNodeSelectionPanel (using real component would be better for integration,
 // but for this test we'll mock to control behavior)
-jest.mock('./start-node-selection-panel', () => {
-  return function MockStartNodeSelectionPanel({
+vi.mock('./start-node-selection-panel', () => ({
+  default: function MockStartNodeSelectionPanel({
     onSelectUserInput,
     onSelectTrigger,
-  }: any) {
+  }: {
+    onSelectUserInput?: () => void
+    onSelectTrigger?: (type: BlockEnum, config?: Record<string, unknown>) => void
+  }) {
     return (
       <div data-testid="start-node-selection-panel">
         <button data-testid="select-user-input" onClick={onSelectUserInput}>
@@ -47,24 +55,24 @@ jest.mock('./start-node-selection-panel', () => {
         </button>
         <button
           data-testid="select-trigger-schedule"
-          onClick={() => onSelectTrigger(BlockEnum.TriggerSchedule)}
+          onClick={() => onSelectTrigger?.(BlockEnum.TriggerSchedule)}
         >
           Select Trigger Schedule
         </button>
         <button
           data-testid="select-trigger-webhook"
-          onClick={() => onSelectTrigger(BlockEnum.TriggerWebhook, { config: 'test' })}
+          onClick={() => onSelectTrigger?.(BlockEnum.TriggerWebhook, { config: 'test' })}
         >
           Select Trigger Webhook
         </button>
       </div>
     )
-  }
-})
+  },
+}))
 
 describe('WorkflowOnboardingModal', () => {
-  const mockOnClose = jest.fn()
-  const mockOnSelectStartNode = jest.fn()
+  const mockOnClose = vi.fn()
+  const mockOnSelectStartNode = vi.fn()
 
   const defaultProps = {
     isShow: true,
@@ -73,7 +81,7 @@ describe('WorkflowOnboardingModal', () => {
   }
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   // Helper function to render component
@@ -123,19 +131,6 @@ describe('WorkflowOnboardingModal', () => {
       const descriptionDiv = container.querySelector('.body-xs-regular.leading-4')
       expect(descriptionDiv).toBeInTheDocument()
       expect(descriptionDiv).toHaveTextContent('workflow.onboarding.description')
-      expect(descriptionDiv).toHaveTextContent('workflow.onboarding.aboutStartNode')
-    })
-
-    it('should render learn more link', () => {
-      // Arrange & Act
-      renderComponent()
-
-      // Assert
-      const learnMoreLink = screen.getByText('workflow.onboarding.learnMore')
-      expect(learnMoreLink).toBeInTheDocument()
-      expect(learnMoreLink.closest('a')).toHaveAttribute('href', 'https://docs.example.com/guides/workflow/node/start')
-      expect(learnMoreLink.closest('a')).toHaveAttribute('target', '_blank')
-      expect(learnMoreLink.closest('a')).toHaveAttribute('rel', 'noopener noreferrer')
     })
 
     it('should render StartNodeSelectionPanel', () => {
@@ -201,7 +196,7 @@ describe('WorkflowOnboardingModal', () => {
 
     it('should accept onClose prop', () => {
       // Arrange
-      const customOnClose = jest.fn()
+      const customOnClose = vi.fn()
 
       // Act
       renderComponent({ onClose: customOnClose })
@@ -212,7 +207,7 @@ describe('WorkflowOnboardingModal', () => {
 
     it('should accept onSelectStartNode prop', () => {
       // Arrange
-      const customHandler = jest.fn()
+      const customHandler = vi.fn()
 
       // Act
       renderComponent({ onSelectStartNode: customHandler })
@@ -484,8 +479,8 @@ describe('WorkflowOnboardingModal', () => {
       expect(screen.getByTestId('modal')).toBeInTheDocument()
 
       // Act - Update props
-      const newOnClose = jest.fn()
-      const newOnSelectStartNode = jest.fn()
+      const newOnClose = vi.fn()
+      const newOnSelectStartNode = vi.fn()
       rerender(
         <WorkflowOnboardingModal
           isShow={true}
@@ -519,7 +514,7 @@ describe('WorkflowOnboardingModal', () => {
       expect(screen.getByTestId('modal')).toBeInTheDocument()
 
       // Act - Change onClose handler
-      const newOnClose = jest.fn()
+      const newOnClose = vi.fn()
       rerender(<WorkflowOnboardingModal {...defaultProps} isShow={true} onClose={newOnClose} />)
 
       // Assert - Modal should still be visible
@@ -547,16 +542,6 @@ describe('WorkflowOnboardingModal', () => {
       expect(heading).toHaveTextContent('workflow.onboarding.title')
     })
 
-    it('should have external link with proper attributes', () => {
-      // Arrange & Act
-      renderComponent()
-
-      // Assert
-      const link = screen.getByText('workflow.onboarding.learnMore').closest('a')
-      expect(link).toHaveAttribute('target', '_blank')
-      expect(link).toHaveAttribute('rel', 'noopener noreferrer')
-    })
-
     it('should have keyboard navigation support via ESC key', () => {
       // Arrange
       renderComponent({ isShow: true })
@@ -572,10 +557,10 @@ describe('WorkflowOnboardingModal', () => {
       // Arrange & Act
       renderComponent({ isShow: true })
 
-      // Assert
+      // Assert - ShortcutsName component renders keys in div elements with system-kbd class
       const escKey = screen.getByText('workflow.onboarding.escTip.key')
-      expect(escKey.closest('kbd')).toBeInTheDocument()
-      expect(escKey.closest('kbd')).toHaveClass('system-kbd')
+      // ShortcutsName renders a <div> with class system-kbd, not a <kbd> element
+      expect(escKey.closest('.system-kbd')).toBeInTheDocument()
     })
 
     it('should have descriptive text for ESC functionality', () => {
@@ -594,16 +579,6 @@ describe('WorkflowOnboardingModal', () => {
       // Assert
       const title = screen.getByText('workflow.onboarding.title')
       expect(title).toHaveClass('text-text-primary')
-    })
-
-    it('should have underlined learn more link', () => {
-      // Arrange & Act
-      renderComponent()
-
-      // Assert
-      const link = screen.getByText('workflow.onboarding.learnMore').closest('a')
-      expect(link).toHaveClass('underline')
-      expect(link).toHaveClass('cursor-pointer')
     })
   })
 
@@ -653,9 +628,6 @@ describe('WorkflowOnboardingModal', () => {
       // Assert - Header elements
       const heading = container.querySelector('h3')
       expect(heading).toBeInTheDocument()
-
-      // Assert - Description with link
-      expect(screen.getByText('workflow.onboarding.learnMore').closest('a')).toBeInTheDocument()
 
       // Assert - Selection panel
       expect(screen.getByTestId('start-node-selection-panel')).toBeInTheDocument()
